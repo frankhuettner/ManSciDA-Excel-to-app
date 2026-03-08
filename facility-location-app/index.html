@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facility Location Optimizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem;
+      color: #111827; background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #2563eb; padding-bottom: .5rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.15rem; color: #374151; margin: 1.5rem 0 .5rem; }
+    h3 { font-size: 1rem; color: #374151; margin: 1.25rem 0 .4rem; }
+    p.subtitle { color: #6b7280; margin: .25rem 0 1.25rem; font-size: .9rem; }
+    code { background: #e5e7eb; padding: .1em .35em; border-radius: 3px; font-size: .875em; }
+
+    /* two-column layout */
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    @media (max-width: 680px) { .layout { grid-template-columns: 1fr; } }
+
+    /* input cost table */
+    .cost-table { border-collapse: collapse; font-size: .9rem; }
+    .cost-table th {
+      background: #eff6ff; padding: .4rem .9rem;
+      border: 1px solid #bfdbfe; font-weight: 600; text-align: center;
+    }
+    .cost-table td { border: 1px solid #d1d5db; padding: 0; }
+    .cost-table td.lbl {
+      padding: .3rem .8rem; background: #f3f4f6;
+      font-weight: 600; text-align: right;
+    }
+    .cost-table td input[type=number] {
+      width: 90px; border: none; padding: .35rem .5rem;
+      font-size: .9rem; text-align: right; background: transparent;
+      outline: none;
+    }
+    .cost-table td input[type=number]:focus { background: #eff6ff; }
+
+    /* scalar inputs row */
+    .scalar-row { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .scalar-row label { display: flex; flex-direction: column; font-size: .82rem; color: #6b7280; gap: .2rem; }
+    .scalar-row input[type=number] {
+      width: 80px; padding: .35rem .5rem; border: 1px solid #d1d5db;
+      border-radius: 4px; font-size: .9rem; text-align: right;
+    }
+    .scalar-row input[type=number]:focus { outline: 2px solid #93c5fd; border-color: #60a5fa; }
+
+    /* button */
+    button#solve {
+      margin-top: 1.25rem; padding: .65rem 2rem;
+      background: #2563eb; color: #fff; border: none;
+      border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600;
+    }
+    button#solve:hover:not(:disabled) { background: #1d4ed8; }
+    button#solve:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    /* status banner */
+    #status {
+      display: none; margin: 1rem 0; padding: .7rem 1rem;
+      border-radius: 6px; font-size: .92rem;
+    }
+    #status.ok  { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    #status.err { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    /* result tables */
+    .rtable { border-collapse: collapse; font-size: .9rem; width: auto; }
+    .rtable th {
+      background: #eff6ff; padding: .4rem .9rem;
+      border: 1px solid #bfdbfe; text-align: right; font-weight: 600;
+    }
+    .rtable th:first-child { text-align: left; }
+    .rtable td { border: 1px solid #d1d5db; padding: .35rem .9rem; text-align: right; }
+    .rtable td:first-child { text-align: left; font-weight: 500; }
+    .rtable tr.foot td { background: #f3f4f6; font-style: italic; }
+    .rtable tr.total td { font-weight: 700; background: #f9fafb; }
+
+    /* loading */
+    #loading { color: #6b7280; font-style: italic; margin: 2rem 0; }
+    #app { display: none; }
+  </style>
+</head>
+<body>
+
+<h1>Facility Location Optimizer</h1>
+<p class="subtitle">
+  Decide which facilities to open and how to allocate customer demand to
+  minimise total fixed&nbsp;+&nbsp;transport cost.
+  Use <code>100000</code> to mark a route as unavailable.
+</p>
+
+<div id="loading">Loading Python runtime — first visit takes ~15 s, then the browser caches it...</div>
+
+<div id="app">
+  <div class="layout">
+
+    <!-- ── LEFT: inputs ── -->
+    <div>
+      <h2>Input data</h2>
+
+      <h3>Variable transport cost per unit</h3>
+      <p style="font-size:.82rem;color:#6b7280;margin:.2rem 0 .6rem">
+        Rows = customers &nbsp;|&nbsp; Columns = facilities
+      </p>
+      <table class="cost-table">
+        <thead>
+          <tr><th></th><th>West</th><th>North</th><th>East</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lbl">R1</td>
+            <td><input type="number" id="c00" value="1"      step="0.1"></td>
+            <td><input type="number" id="c01" value="0.4"    step="0.1"></td>
+            <td><input type="number" id="c02" value="2.4"    step="0.1"></td>
+          </tr>
+          <tr>
+            <td class="lbl">R2</td>
+            <td><input type="number" id="c10" value="100000" step="0.1"></td>
+            <td><input type="number" id="c11" value="0.5"    step="0.1"></td>
+            <td><input type="number" id="c12" value="0.8"    step="0.1"></td>
+          </tr>
+          <tr>
+            <td class="lbl">R3</td>
+            <td><input type="number" id="c20" value="1.3"    step="0.1"></td>
+            <td><input type="number" id="c21" value="100000" step="0.1"></td>
+            <td><input type="number" id="c22" value="1.4"    step="0.1"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Fixed opening cost</h3>
+      <div class="scalar-row">
+        <label>West  <input type="number" id="f0" value="80"  min="0"></label>
+        <label>North <input type="number" id="f1" value="150" min="0"></label>
+        <label>East  <input type="number" id="f2" value="100" min="0"></label>
+      </div>
+
+      <h3>Capacity</h3>
+      <div class="scalar-row">
+        <label>West  <input type="number" id="cap0" value="300" min="1"></label>
+        <label>North <input type="number" id="cap1" value="100" min="1"></label>
+        <label>East  <input type="number" id="cap2" value="200" min="1"></label>
+      </div>
+
+      <h3>Demand</h3>
+      <div class="scalar-row">
+        <label>R1 <input type="number" id="d0" value="100" min="0"></label>
+        <label>R2 <input type="number" id="d1" value="60"  min="0"></label>
+        <label>R3 <input type="number" id="d2" value="240" min="0"></label>
+      </div>
+
+      <button id="solve" onclick="runSolver()">Solve</button>
+    </div>
+
+    <!-- ── RIGHT: outputs ── -->
+    <div>
+      <h2>Solution</h2>
+      <div id="status"></div>
+      <div id="results"></div>
+    </div>
+
+  </div><!-- .layout -->
+</div><!-- #app -->
+
+
+<!-- ── Pyodide runtime (pinned version for reproducibility) ── -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+
+<script>
+// ── Python solver (embedded as a string, executed inside Pyodide) ─────────────
+const PYTHON = `
+import json, numpy as np
+from scipy.optimize import milp, LinearConstraint, Bounds
+
+BIG_M = 1e5
+
+def _solve(c_mat, f, cap, d):
+    """
+    MILP formulation
+      min   sum_j  f_j * y_j  +  sum_{i,j}  c_{ij} * x_{ij}
+      s.t.  sum_j  x_{ij}  >=  d_i          (demand coverage)
+            sum_i  x_{ij}  <=  cap_j * y_j  (capacity x open)
+            y_j in {0,1},   x_{ij} >= 0
+    """
+    n_f, n_c = len(f), len(d)
+    # Variables: [ y_0..y_{n_f-1} | x_00 x_01 .. x_{n_c-1, n_f-1} ]
+    nv = n_f + n_c * n_f
+
+    obj = np.zeros(nv)
+    obj[:n_f] = f
+    for i in range(n_c):
+        obj[n_f + i*n_f : n_f + (i+1)*n_f] = c_mat[i]
+
+    rows, lo, hi = [], [], []
+
+    # demand constraints
+    for i in range(n_c):
+        r = np.zeros(nv)
+        r[n_f + i*n_f : n_f + (i+1)*n_f] = 1.0
+        rows.append(r); lo.append(d[i]); hi.append(np.inf)
+
+    # capacity constraints
+    for j in range(n_f):
+        r = np.zeros(nv); r[j] = -cap[j]
+        for i in range(n_c):
+            r[n_f + i*n_f + j] = 1.0
+        rows.append(r); lo.append(-np.inf); hi.append(0.0)
+
+    lb = np.zeros(nv)
+    ub = np.full(nv, np.inf); ub[:n_f] = 1.0
+    integ = np.zeros(nv); integ[:n_f] = 1      # y_j binary
+
+    res = milp(obj,
+               constraints=LinearConstraint(np.array(rows), lo, hi),
+               integrality=integ,
+               bounds=Bounds(lb, ub))
+    if res.status != 0:
+        return json.dumps({"error": res.message})
+
+    # .tolist() converts all numpy scalars to plain Python int/float
+    y = np.round(res.x[:n_f]).astype(int).tolist()
+    x = res.x[n_f:].reshape(n_c, n_f).tolist()
+    mask = c_mat < BIG_M * 0.9
+    var_cost   = float((c_mat * res.x[n_f:].reshape(n_c, n_f) * mask).sum())
+    fixed_cost = float((f * np.array(y)).sum())
+    return json.dumps({"y": y, "x": x, "total": float(res.fun),
+                        "fixed_cost": fixed_cost, "var_cost": var_cost})
+
+def run_from_js(raw):
+    p = json.loads(raw)
+    return _solve(np.array(p["c_mat"]), np.array(p["f"]),
+                  np.array(p["cap"]),   np.array(p["d"]))
+`;
+
+// ── Pyodide boot ─────────────────────────────────────────────────────────────
+let pyodide = null;
+
+(async () => {
+  pyodide = await loadPyodide();
+  // loadPackage uses Pyodide's own pre-built index — no micropip, no conflicts
+  await pyodide.loadPackage(["numpy", "scipy"]);
+  await pyodide.runPythonAsync(PYTHON);
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display    = "block";
+})();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const FACS  = ["West", "North", "East"];
+const CUSTS = ["R1",   "R2",   "R3"];
+const n = (id) => parseFloat(document.getElementById(id).value);
+
+function showStatus(cls, msg) {
+  const el = document.getElementById("status");
+  el.className = cls; el.textContent = msg; el.style.display = "block";
+}
+
+// ── Solver callback ──────────────────────────────────────────────────────────
+async function runSolver() {
+  const btn = document.getElementById("solve");
+  btn.disabled = true; btn.textContent = "Solving…";
+  document.getElementById("results").innerHTML = "";
+
+  const payload = {
+    c_mat: [[n("c00"), n("c01"), n("c02")],
+            [n("c10"), n("c11"), n("c12")],
+            [n("c20"), n("c21"), n("c22")]],
+    f:   [n("f0"),   n("f1"),   n("f2")],
+    cap: [n("cap0"), n("cap1"), n("cap2")],
+    d:   [n("d0"),   n("d1"),   n("d2")],
+  };
+
+  try {
+    pyodide.globals.set("_payload", JSON.stringify(payload));
+    const raw = await pyodide.runPythonAsync("run_from_js(_payload)");
+    const result = JSON.parse(raw);
+    if (result.error) { showStatus("err", "Solver: " + result.error); }
+    else              { renderResult(result, payload); }
+  } catch (e) {
+    showStatus("err", "Error: " + e.message);
+  }
+
+  btn.disabled = false; btn.textContent = "Solve";
+}
+
+// ── Render results ───────────────────────────────────────────────────────────
+function renderResult(r, p) {
+  const { y, x, total, fixed_cost, var_cost } = r;
+  const open = FACS.filter((_, j) => y[j]);
+  showStatus("ok", `Optimal — open: ${open.join(" + ")} — total cost: ${total.toFixed(2)}`);
+
+  // Facility decisions
+  let html = "<h3>Facility decisions</h3>";
+  html += '<table class="rtable"><thead><tr><th>Facility</th><th>Fixed cost</th><th>Decision</th></tr></thead><tbody>';
+  FACS.forEach((f, j) => {
+    html += `<tr><td>${f}</td><td>${p.f[j]}</td><td>${y[j] ? "✅ Open" : "❌ Closed"}</td></tr>`;
+  });
+  html += "</tbody></table>";
+
+  // Flow table
+  html += "<h3>Units shipped</h3>";
+  html += '<table class="rtable"><thead><tr><th></th>';
+  FACS.forEach(f => html += `<th>${f}</th>`);
+  html += "<th>Total served</th><th>Demand</th></tr></thead><tbody>";
+
+  CUSTS.forEach((c, i) => {
+    const tot = x[i].reduce((a, b) => a + b, 0);
+    html += `<tr><td>${c}</td>`;
+    x[i].forEach(v => html += `<td>${v.toFixed(2)}</td>`);
+    html += `<td>${tot.toFixed(2)}</td><td>${p.d[i]}</td></tr>`;
+  });
+
+  // Usage + Capacity footer rows
+  html += '<tr class="foot"><td>Usage</td>';
+  FACS.forEach((_, j) => html += `<td>${x.reduce((s, row) => s + row[j], 0).toFixed(2)}</td>`);
+  html += "<td></td><td></td></tr>";
+
+  html += '<tr class="foot"><td>Capacity</td>';
+  FACS.forEach((_, j) => html += `<td>${p.cap[j]}</td>`);
+  html += "<td></td><td></td></tr>";
+  html += "</tbody></table>";
+
+  // Cost summary
+  html += "<h3>Cost summary</h3>";
+  html += '<table class="rtable"><tbody>';
+  html += `<tr><td>Fixed cost</td><td>${fixed_cost.toFixed(2)}</td></tr>`;
+  html += `<tr><td>Variable cost</td><td>${var_cost.toFixed(2)}</td></tr>`;
+  html += `<tr class="total"><td>Total cost</td><td>${total.toFixed(2)}</td></tr>`;
+  html += "</tbody></table>";
+
+  document.getElementById("results").innerHTML = html;
+}
+</script>
+
+</body>
+</html>

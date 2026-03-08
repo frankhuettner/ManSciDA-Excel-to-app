@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excel → Browser App · ManSciDA-Excel-to-app</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #7c3aed; --purple-light: #ede9fe; --purple-mid: #ddd6fe;
+      --blue:   #2563eb; --blue-light:   #eff6ff;
+      --green:  #059669; --green-light:  #ecfdf5;
+      --amber:  #d97706; --amber-light:  #fffbeb;
+      --gray:   #6b7280; --gray-light:   #f9fafb; --gray-mid: #e5e7eb;
+      --text:   #111827;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      color: var(--text); background: #fff; line-height: 1.6;
+    }
+    a { color: var(--purple); }
+    code {
+      font-family: ui-monospace, monospace; font-size: .88em;
+      background: var(--gray-mid); padding: .1em .35em; border-radius: 4px;
+    }
+
+    /* ── layout helpers ── */
+    .section        { padding: 5rem 1.5rem; }
+    .section.alt    { background: var(--gray-light); }
+    .section.dark   { background: #1e1b4b; color: #e0e7ff; }
+    .inner          { max-width: 860px; margin: 0 auto; }
+    .inner.wide     { max-width: 1060px; }
+
+    h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; line-height: 1.15; }
+    h2 { font-size: 1.55rem; font-weight: 700; margin-bottom: 1rem; }
+    h3 { font-size: 1.1rem;  font-weight: 600; margin-bottom: .4rem; }
+    p  { color: var(--gray); max-width: 62ch; }
+
+    .tag {
+      display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--purple); background: var(--purple-light);
+      padding: .2rem .65rem; border-radius: 99px; margin-bottom: 1rem;
+    }
+
+    /* ── hero ── */
+    .hero { padding: 6rem 1.5rem 5rem; text-align: center; background: var(--gray-light); }
+    .hero h1 { margin-bottom: 1.1rem; }
+    .hero p  { margin: 0 auto 2rem; font-size: 1.15rem; max-width: 52ch; }
+    .btn {
+      display: inline-block; padding: .75rem 2rem; border-radius: 8px;
+      font-weight: 600; font-size: 1rem; text-decoration: none; cursor: pointer;
+      transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-primary { background: var(--purple); color: #fff; }
+    .btn-outline { background: transparent; border: 2px solid var(--purple-mid); color: var(--purple); margin-left: .75rem; }
+
+    /* ── flow diagram ── */
+    .flow {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 0; margin: 3rem 0 1rem;
+    }
+    .flow-box {
+      background: #fff; border: 2px solid var(--purple-mid);
+      border-radius: var(--radius); padding: 1.4rem 1.6rem;
+      text-align: center; min-width: 160px; flex: 1; max-width: 220px;
+      box-shadow: 0 2px 12px rgba(124,58,237,.08);
+    }
+    .flow-box .icon { font-size: 2.2rem; margin-bottom: .5rem; }
+    .flow-box strong { display: block; font-size: 1rem; margin-bottom: .2rem; }
+    .flow-box span   { font-size: .83rem; color: var(--gray); }
+    .flow-arrow {
+      font-size: 1.8rem; color: var(--purple-mid); padding: 0 .75rem;
+      align-self: center; flex-shrink: 0;
+    }
+    /* compact variant for the 5-box optional path */
+    .flow.compact .flow-box {
+      min-width: 100px; max-width: 145px; padding: .85rem .75rem;
+    }
+    .flow.compact .flow-box .icon { font-size: 1.55rem; }
+    .flow.compact .flow-box strong { font-size: .84rem; }
+    .flow.compact .flow-arrow { font-size: 1.3rem; padding: 0 .4rem; }
+    @media (max-width: 600px) {
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+
+    /* ── floating TOC ── */
+    #toc {
+      position: fixed; right: 1rem; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: .45rem; z-index: 200;
+    }
+    #toc a {
+      display: flex; align-items: center; justify-content: flex-end;
+      text-decoration: none; gap: .5rem;
+    }
+    #toc .toc-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: var(--purple-mid); transition: transform .2s, background .2s;
+    }
+    #toc a.active .toc-dot, #toc a:hover .toc-dot {
+      background: var(--purple); transform: scale(1.5);
+    }
+    #toc .toc-label {
+      font-size: .72rem; font-weight: 600; color: var(--gray);
+      white-space: nowrap; transition: color .15s;
+    }
+    #toc a:hover .toc-label { color: var(--purple); }
+    #toc a.active .toc-label { color: var(--purple); font-weight: 700; }
+    @media (max-width: 1000px) { #toc { display: none; } }
+
+    /* ── stack cards ── */
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 1.25rem; margin-top: 2.5rem;
+    }
+    .card {
+      background: #fff; border-radius: var(--radius); padding: 1.4rem;
+      border: 1px solid var(--gray-mid);
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .card .badge {
+      display: inline-block; font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      padding: .15rem .55rem; border-radius: 4px; margin-bottom: .75rem;
+    }
+    .card .icon { font-size: 1.6rem; margin-bottom: .5rem; }
+    .card p { font-size: .87rem; margin-top: .3rem; }
+
+    /* ── architecture diagram ── */
+    .arch {
+      margin: 2.5rem auto 0; max-width: 520px;
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--purple-mid);
+      font-size: .9rem;
+    }
+    .arch-row {
+      display: flex; align-items: stretch;
+    }
+    .arch-label {
+      width: 130px; flex-shrink: 0; padding: .9rem 1rem;
+      font-weight: 600; font-size: .82rem; display: flex; align-items: center;
+      border-right: 1px solid rgba(255,255,255,.25);
+    }
+    .arch-desc {
+      flex: 1; padding: .9rem 1.1rem; font-size: .85rem;
+      display: flex; align-items: center;
+    }
+    .arch-row + .arch-row { border-top: 1px solid rgba(255,255,255,.2); }
+
+    /* ── env table ── */
+    .env-table { width: 100%; border-collapse: collapse; margin-top: 2rem; font-size: .9rem; }
+    .env-table th {
+      background: var(--purple-light); color: var(--purple); padding: .7rem 1rem;
+      text-align: left; border-bottom: 2px solid var(--purple-mid);
+    }
+    .env-table td { padding: .65rem 1rem; border-bottom: 1px solid var(--gray-mid); vertical-align: top; }
+    .env-table tr:last-child td { border-bottom: none; }
+    .env-table td:first-child { font-weight: 600; color: var(--text); }
+    .env-table .pill {
+      display: inline-block; padding: .1rem .5rem; border-radius: 4px;
+      font-size: .8rem; font-weight: 600;
+    }
+    .pill-green  { background: var(--green-light);  color: var(--green); }
+    .pill-blue   { background: var(--blue-light);   color: var(--blue); }
+    .pill-purple { background: var(--purple-light); color: var(--purple); }
+
+    /* ── prompt tabs ── */
+    .prompt-tabs { display: flex; gap: .5rem; margin-top: 2rem; flex-wrap: wrap; }
+    .ptab {
+      padding: .45rem 1.1rem; border-radius: 6px 6px 0 0;
+      border: 1px solid var(--purple-mid); border-bottom: none;
+      background: var(--purple-light); color: var(--purple);
+      font-size: .83rem; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .ptab.active { background: #1e1b4b; color: #a5b4fc; border-color: #1e1b4b; }
+
+    /* ── prompt block ── */
+    .prompt-wrap {
+      position: relative;
+      background: #1e1b4b; border-radius: 0 var(--radius) var(--radius) var(--radius); overflow: hidden;
+    }
+    .prompt-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 1.25rem; background: rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .prompt-header span { color: #a5b4fc; font-size: .85rem; font-weight: 600; }
+    .copy-btn {
+      padding: .35rem 1rem; border-radius: 6px; border: 1px solid #a5b4fc;
+      background: transparent; color: #a5b4fc; font-size: .83rem;
+      cursor: pointer; font-weight: 600; transition: background .15s, color .15s;
+    }
+    .copy-btn:hover, .copy-btn.copied { background: #a5b4fc; color: #1e1b4b; }
+    .prompt-text {
+      padding: 1.5rem 1.5rem 2rem; color: #e0e7ff;
+      font-family: ui-monospace, monospace; font-size: .82rem;
+      line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+      max-height: 440px; overflow-y: auto;
+    }
+    .prompt-panel { display: none; }
+    .prompt-panel.active { display: block; }
+    /* custom scrollbar inside prompt */
+    .prompt-text::-webkit-scrollbar { width: 6px; }
+    .prompt-text::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+
+    /* ── security callout ── */
+    .callout {
+      margin-top: 2rem; padding: 1.1rem 1.4rem;
+      border-radius: var(--radius); font-size: .9rem;
+    }
+    .callout-blue  { background: var(--blue-light);  border-left: 3px solid var(--blue); }
+    .callout-amber { background: var(--amber-light); border-left: 3px solid var(--amber); }
+    .callout-green { background: var(--green-light); border-left: 3px solid var(--green); }
+
+    /* ── iteration cards ── */
+    .iter-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .iter-card {
+      background: #fff; border-radius: var(--radius);
+      border: 1px solid var(--gray-mid); padding: 1.1rem 1.2rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .iter-card .icon { font-size: 1.5rem; margin-bottom: .4rem; }
+    .iter-card h3 { font-size: .95rem; margin-bottom: .3rem; }
+    .iter-card p  { font-size: .84rem; margin: 0; }
+
+    /* ── steps list ── */
+    .steps { list-style: none; margin-top: 2rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .steps li { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num {
+      width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0;
+      background: var(--purple); color: #fff; font-weight: 700; font-size: .9rem;
+      display: flex; align-items: center; justify-content: center; margin-top: .1rem;
+    }
+    .steps strong { display: block; margin-bottom: .2rem; }
+    .steps p { font-size: .9rem; margin: 0; }
+
+    /* ── footer ── */
+    footer {
+      text-align: center; padding: 2.5rem 1rem;
+      font-size: .85rem; color: var(--gray); border-top: 1px solid var(--gray-mid);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── FLOATING TOC ── -->
+<nav id="toc" aria-label="Page sections">
+  <a href="#how-it-works" data-toc><span class="toc-label">How it works</span><span class="toc-dot"></span></a>
+  <a href="#stack" data-toc><span class="toc-label">Stack</span><span class="toc-dot"></span></a>
+  <a href="#architecture" data-toc><span class="toc-label">Architecture</span><span class="toc-dot"></span></a>
+  <a href="#environments" data-toc><span class="toc-label">Environments</span><span class="toc-dot"></span></a>
+  <a href="#get-started" data-toc><span class="toc-label">Get started</span><span class="toc-dot"></span></a>
+  <a href="#examples" data-toc><span class="toc-label">Examples</span><span class="toc-dot"></span></a>
+  <a href="#next-steps" data-toc><span class="toc-label">Next steps</span><span class="toc-dot"></span></a>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="inner" style="text-align:center">
+    <div class="tag">Management Science · Decision Analytics</div>
+    <h1>Turn your Excel model<br>into a live web app</h1>
+    <p>Normally, running Python means installing it, managing environments, and keeping packages in sync. This workflow eliminates all of that — Python runs <em>inside the browser</em>, so anyone can use the app with no setup at all.</p>
+    <a href="#get-started" class="btn btn-primary">Get started</a>
+    <a href="#how-it-works" class="btn btn-outline">How it works</a>
+    <a href="#next-steps" class="btn btn-outline" style="margin-left:.75rem">Next steps</a>
+  </div>
+</section>
+
+
+<!-- ── HOW IT WORKS ── -->
+<section class="section" id="how-it-works">
+  <div class="inner">
+    <div class="tag">The idea</div>
+    <h2>Convert your Excel model in a few steps</h2>
+    <p>An AI assistant reads your Excel file, extracts the math, and produces a single HTML file you can share with anyone. Optionally add a notebook step to review and fine-tune the solver before publishing.</p>
+
+    <!-- Direct path -->
+    <p style="margin-top:2rem;font-weight:600;font-size:.9rem;color:var(--purple)">Direct path</p>
+    <div class="flow" style="margin-top:.5rem">
+      <div class="flow-box">
+        <div class="icon">📊</div>
+        <strong>Your Excel model</strong>
+        <span>Data, Solver setup, constraints</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+        <div class="icon">🤖</div>
+        <strong>AI assistant</strong>
+        <span>Reads model, picks solver, writes code</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="icon">🌐</div>
+        <strong>HTML browser app</strong>
+        <span>One file — share the link, anyone can use it</span>
+      </div>
+    </div>
+
+    <!-- Via notebook path -->
+    <p style="margin-top:2rem;font-weight:600;font-size:.9rem;color:var(--gray)">Optional: via notebook (recommended for complex models)</p>
+    <div class="flow compact" style="margin-top:.5rem">
+      <div class="flow-box">
+        <div class="icon">📊</div>
+        <strong>Your Excel model</strong>
+        <span>Data, Solver setup, constraints</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+        <div class="icon">🤖</div>
+        <strong>AI assistant</strong>
+        <span>Produces a Jupyter notebook</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color:#10b981;background:var(--green-light)">
+        <div class="icon">📓</div>
+        <strong>Review in Colab</strong>
+        <span>Run cells, check numbers, tweak</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+        <div class="icon">🤖</div>
+        <strong>AI assistant</strong>
+        <span>Converts notebook → HTML app</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="icon">🌐</div>
+        <strong>HTML browser app</strong>
+        <span>One file — share the link</span>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:1.75rem">
+      <strong>The app is the HTML file.</strong>
+      Python runs <em>inside the browser</em> using Pyodide — a full Python runtime compiled to WebAssembly.
+      No server, no back-end, zero running cost. The file you receive from the AI <em>is</em> the app;
+      you can open it locally, or host it anywhere.
+    </div>
+  </div>
+</section>
+
+
+<!-- ── STACK ── -->
+<section class="section alt" id="stack">
+  <div class="inner wide">
+    <div class="tag">The stack</div>
+    <h2>What the generated app uses</h2>
+    <p>Every layer is free and declared inside the single HTML file. Open it in a browser — nothing to install.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="icon">🐍</div>
+        <span class="badge pill-purple">Runtime</span>
+        <h3>Pyodide v0.29.3</h3>
+        <p>Python compiled to WebAssembly. Runs inside Chrome, Firefox, Safari — no install, no server.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚙️</div>
+        <span class="badge pill-blue">Solver</span>
+        <h3>scipy · CVXPY · Clarabel</h3>
+        <p>scipy for LP &amp; MILP. CVXPY + Clarabel for quadratic programs (e.g. portfolio variance).</p>
+      </div>
+      <div class="card">
+        <div class="icon">🖥️</div>
+        <span class="badge" style="background:#fef3c7;color:#92400e">UI</span>
+        <h3>Vanilla HTML + JS</h3>
+        <p>Plain form inputs and result tables. No framework, no magic — the generated code is transparent and auditable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ── ARCHITECTURE ── -->
+<section class="section" id="architecture">
+  <div class="inner">
+    <div class="tag">Under the hood</div>
+    <h2>How Python runs inside the browser</h2>
+    <p>The browser downloads a special build of Python compiled to WebAssembly (WASM) — a low-level format every modern browser understands. Your solver code runs inside that Python, in the tab.</p>
+
+    <div class="arch" role="img" aria-label="Architecture layers">
+      <div class="arch-row" style="background:#7c3aed">
+        <div class="arch-label" style="color:#fff">Your solver</div>
+        <div class="arch-desc" style="color:#e0e7ff">
+          The same Python code that runs in your notebook — embedded as a string in the HTML file
+        </div>
+      </div>
+      <div class="arch-row" style="background:#6d28d9">
+        <div class="arch-label" style="color:#fff">numpy · scipy<br>CVXPY · Clarabel</div>
+        <div class="arch-desc" style="color:#ddd6fe">
+          Pre-compiled WASM packages, downloaded from Pyodide's CDN and cached by the browser
+        </div>
+      </div>
+      <div class="arch-row" style="background:#5b21b6">
+        <div class="arch-label" style="color:#fff">Pyodide v0.29.3</div>
+        <div class="arch-desc" style="color:#c4b5fd">
+          A complete Python 3.12 interpreter compiled to WebAssembly — ~10 MB, downloaded once
+        </div>
+      </div>
+      <div class="arch-row" style="background:#4c1d95">
+        <div class="arch-label" style="color:#c4b5fd">JavaScript</div>
+        <div class="arch-desc" style="color:#a5b4fc">
+          Reads form inputs → passes JSON to Python → receives JSON back → updates the page
+        </div>
+      </div>
+      <div class="arch-row" style="background:#2e1065">
+        <div class="arch-label" style="color:#a5b4fc">Browser</div>
+        <div class="arch-desc" style="color:#818cf8">
+          Chrome / Firefox / Safari / Edge — no extension or plugin needed
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:1.25rem;font-size:.88rem">
+      First visit takes ~15 seconds while Python and the packages download.
+      After that the browser caches everything, so subsequent visits load instantly.
+    </p>
+  </div>
+</section>
+
+
+<!-- ── ENVIRONMENT ── -->
+<section class="section alt" id="environments">
+  <div class="inner wide">
+    <div class="tag">Environments</div>
+    <h2>Three ways to run the same Python code</h2>
+    <p>The solver code is <em>identical</em> in all three contexts. Only the packaging layer differs.</p>
+
+    <table class="env-table">
+      <thead>
+        <tr>
+          <th>Context</th>
+          <th>Where Python runs</th>
+          <th>How to install packages</th>
+          <th>How to start</th>
+          <th>Best for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Google Colab notebook</td>
+          <td>Google's cloud servers</td>
+          <td><code>!pip install cvxpy clarabel</code> in the first cell</td>
+          <td>Open the <code>.ipynb</code> file in <a href="https://colab.research.google.com">colab.research.google.com</a></td>
+          <td><span class="pill pill-green">Easiest to get started</span> — no local setup</td>
+        </tr>
+        <tr>
+          <td>Local notebook (uv)</td>
+          <td>Your machine (CPython)</td>
+          <td><code>uv sync</code> reads <code>pyproject.toml</code>, writes <code>uv.lock</code></td>
+          <td><code>uv run jupyter notebook</code></td>
+          <td>Reproducible local development; versions pinned in <code>uv.lock</code></td>
+        </tr>
+        <tr>
+          <td>Browser app (Pyodide)</td>
+          <td>The visitor's browser tab (WebAssembly)</td>
+          <td><code>pyodide.loadPackage(["cvxpy-base", "clarabel"])</code> in the HTML file</td>
+          <td>Open the URL — nothing to install</td>
+          <td><span class="pill pill-purple">Sharing with non-technical users</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.5rem;padding:1rem 1.25rem;background:var(--amber-light);border-left:3px solid var(--amber);border-radius:6px;font-size:.9rem">
+      <strong>Note on package names:</strong>
+      In Pyodide's package index the library is called <code>cvxpy-base</code>, but on PyPI
+      (Colab, uv, pip) it is just <code>cvxpy</code>. In both cases you write
+      <code>import cvxpy as cp</code> — the name difference is invisible to your code.
+    </div>
+  </div>
+</section>
+
+
+<!-- ── GET STARTED ── -->
+<section class="section" id="get-started">
+  <div class="inner">
+    <div class="tag">Get started</div>
+    <h2>Convert your Excel model in minutes</h2>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <div>
+          <strong>Open an AI assistant</strong>
+          <p>Go to <a href="https://claude.ai">claude.ai</a>, <a href="https://chat.openai.com">ChatGPT</a>, or <a href="https://gemini.google.com">Gemini</a> and start a new conversation. A free account is sufficient.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div>
+          <strong>Attach your Excel file</strong>
+          <p>Upload the <code>.xlsx</code> file that contains your optimization model (the one with Solver set up).</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div>
+          <strong>Choose a path and paste the matching prompt</strong>
+          <p>Go <strong>direct to HTML</strong> for a quick result, or go <strong>via notebook</strong> to review the solver logic first (recommended for complex models).</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <div>
+          <strong>Test locally</strong>
+          <p>Save the <code>index.html</code> and open it in your browser. Check that the default values match Excel and that Solve returns the right answer.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        <div>
+          <strong>Share</strong>
+          <p>Send the <code>index.html</code> directly — by email, Canvas, or any file share. Anyone who opens it can run the solver with no install.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout-amber" style="margin-top:2rem">
+      <strong>Watch out for confidential data.</strong>
+      When you upload an Excel file to an AI assistant, the data goes to an external server.
+      If your model contains sensitive numbers — real costs, client names, proprietary figures —
+      replace them with plausible fake values first. The <em>structure</em> of the model is what
+      the AI needs; the actual numbers can be substituted and corrected later.
+    </div>
+
+    <h3 style="margin-top:2.5rem;margin-bottom:.5rem">The prompts</h3>
+    <p style="margin-bottom:0;font-size:.9rem">Pick the right prompt for your path, then copy and paste it into your AI assistant.</p>
+
+    <div class="prompt-tabs">
+      <button class="ptab active" onclick="switchTab('html')">Excel → HTML app</button>
+      <button class="ptab" onclick="switchTab('nb')">Excel → Notebook</button>
+      <button class="ptab" onclick="switchTab('nb2html')">Notebook → HTML app</button>
+    </div>
+
+    <!-- Panel 1: Excel → HTML -->
+    <div class="prompt-wrap prompt-panel active" id="panel-html">
+      <div class="prompt-header">
+        <span>prompts/excel-to-html.md</span>
+        <button class="copy-btn" onclick="copyPrompt('prompt-html')">Copy</button>
+      </div>
+      <pre class="prompt-text" id="prompt-html">I have an Excel optimization model (attached). Convert it into a single-file browser app.
+
+## Step 1 — Understand the model
+
+Read all sheets. State explicitly:
+
+- Parameters — fixed inputs (costs, distances, capacities, etc.)
+- Decision variables — cells Excel Solver changes; continuous, binary, or integer?
+- Objective — what is minimized or maximized; write the formula in plain math
+- Constraints — list each one with type (≤, ≥, =) and meaning
+
+Then pick the solver:
+
+  All variables continuous, linear objective    →  scipy.optimize.linprog
+  All variables continuous, quadratic objective →  CVXPY + Clarabel
+  Any binary or integer variables               →  scipy.optimize.milp
+
+## Step 2 — Stack
+
+  Python runtime:  Pyodide v0.29.3 (WebAssembly — runs Python inside the browser)
+  Packages:        pyodide.loadPackage([...])
+  UI:              Vanilla HTML + CSS + JavaScript
+  Output:          One self-contained index.html file
+
+Package calls:
+  scipy solvers  →  await pyodide.loadPackage(["numpy", "scipy"])
+  CVXPY/Clarabel →  await pyodide.loadPackage(["cvxpy-base", "clarabel"])
+
+## Step 3 — App requirements
+
+- Pre-fill every input with default values from the Excel file
+- All inputs editable so users can explore scenarios
+- Loading message while Python initialises (~15 s first visit)
+- After solving: optimal decision values, objective value, and a breakdown
+- Clear error message if infeasible
+
+## Step 4 — Serialisation rules (mandatory — violating causes a runtime crash)
+
+Numpy types crash json.dumps. Always convert before returning:
+
+  result.x.tolist()    ← numpy array → plain Python list
+  float(result.fun)    ← numpy scalar → plain Python float
+
+JS → Python bridge:
+  pyodide.globals.set("_payload", JSON.stringify(data))
+  const raw = await pyodide.runPythonAsync("run_from_js(_payload)")
+
+## Deliver
+
+One complete index.html. No separate files. No build step.
+Must open directly in a browser from disk.</pre>
+    </div>
+
+    <!-- Panel 2: Excel → Notebook -->
+    <div class="prompt-wrap prompt-panel" id="panel-nb">
+      <div class="prompt-header">
+        <span>prompts/excel-to-notebook.md</span>
+        <button class="copy-btn" onclick="copyPrompt('prompt-nb')">Copy</button>
+      </div>
+      <pre class="prompt-text" id="prompt-nb">I have an Excel optimization model (attached). Convert it into a Jupyter notebook.
+
+## Step 1 — Understand the model
+
+Read all sheets. State explicitly:
+
+- Parameters — fixed inputs (costs, distances, capacities, etc.)
+- Decision variables — cells Excel Solver changes; continuous, binary, or integer?
+- Objective — what is minimized or maximized; write the formula in plain math
+- Constraints — list each one with type (≤, ≥, =) and meaning
+
+Pick the solver:
+
+  All variables continuous, linear objective    →  scipy.optimize.linprog
+  All variables continuous, quadratic objective →  CVXPY + Clarabel
+  Any binary or integer variables               →  scipy.optimize.milp
+
+## Step 2 — Notebook structure
+
+Produce an .ipynb notebook with these cells in order:
+
+1. Install cell (always first):
+     import sys
+     if "google.colab" in sys.modules:
+         %pip install cvxpy clarabel -q   # adjust to chosen solver
+
+2. Imports — numpy, pandas, solver library, matplotlib if plotting
+
+3. Data — all parameters as named variables; pd.DataFrame display of matrix inputs
+
+4. Solver function — self-contained function; identical logic to what goes in a browser app
+
+5. Solve and test — call with default values; assert statements to verify vs Excel solution
+
+6. Results — pd.DataFrame tables with clear labels
+
+7. Sensitivity analysis (if applicable) — sweep one key parameter
+
+## Step 3 — Code quality
+
+- Use descriptive variable names matching the Excel labels
+- Add a brief markdown cell before each section
+- Solver function must be self-contained (no global state)
+
+## Deliver
+
+One complete .ipynb notebook. Must run top-to-bottom in Google Colab. All assertions must pass.</pre>
+    </div>
+
+    <!-- Panel 3: Notebook → HTML -->
+    <div class="prompt-wrap prompt-panel" id="panel-nb2html">
+      <div class="prompt-header">
+        <span>prompts/notebook-to-html.md</span>
+        <button class="copy-btn" onclick="copyPrompt('prompt-nb2html')">Copy</button>
+      </div>
+      <pre class="prompt-text" id="prompt-nb2html">I have a Jupyter notebook (attached) with a working Python optimization solver.
+Convert it into a single-file browser app.
+
+## Step 1 — Understand the notebook
+
+Read the notebook and identify:
+
+- The solver function — self-contained Python function that takes params and returns results
+- Default parameter values used in the notebook
+- What the function returns (decision variables, objective, breakdown)
+- Which libraries are imported (scipy, cvxpy, numpy, etc.)
+
+Select the Pyodide package call:
+
+  scipy.optimize.linprog / milp  →  await pyodide.loadPackage(["numpy", "scipy"])
+  cvxpy                          →  await pyodide.loadPackage(["cvxpy-base", "clarabel"])
+
+Note: the import statement (import cvxpy as cp) is identical in both environments.
+
+## Step 2 — Stack
+
+  Python runtime:  Pyodide v0.29.3 (WebAssembly)
+  Packages:        pyodide.loadPackage([...])
+  UI:              Vanilla HTML + CSS + JavaScript
+  Output:          One self-contained index.html file
+
+## Step 3 — App requirements
+
+- Embed the solver function from the notebook as-is in the HTML
+- One editable input field per parameter, pre-filled with notebook defaults
+- Loading message while Pyodide initialises
+- After solving: optimal decision values, objective value, and a breakdown
+- Clear error message if infeasible
+
+## Step 4 — Serialisation rules (mandatory)
+
+Wrap numpy results before json.dumps:
+
+  np_array.tolist()    ← array → plain list
+  float(np_scalar)     ← scalar → plain float
+
+The solver function itself does NOT need to change — only the run_from_js wrapper.
+
+## Deliver
+
+One complete index.html. No separate files. No build step.
+Must open directly in a browser from disk.</pre>
+    </div>
+
+    <p style="margin-top:.75rem;font-size:.85rem;color:var(--gray)">
+      Full prompt files are in the
+      <a href="prompts/"><code>prompts/</code></a> directory of this repository.
+    </p>
+  </div>
+</section>
+
+
+<!-- ── EXAMPLES ── -->
+<section class="section alt" id="examples">
+  <div class="inner">
+    <div class="tag">Examples in this repo</div>
+    <h2>Two working apps to learn from</h2>
+    <div class="cards" style="margin-top:1.5rem">
+      <div class="card" style="border-top:3px solid var(--blue)">
+        <div class="icon">🏭</div>
+        <h3>Facility Location</h3>
+        <p style="margin:.3rem 0 .75rem">
+          Which warehouses to open? How to allocate customers?<br>
+          <strong>Model:</strong> MILP &nbsp;·&nbsp; <strong>Solver:</strong> scipy.optimize.milp
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.75rem">
+          <a href="facility-location-app/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
+          <a href="https://colab.research.google.com/github/frankhuettner/ManSciDA-Excel-to-app/blob/main/facility-location-app/facility_location.ipynb" style="font-size:.85rem">Open in Colab</a>
+          <a href="facility-location-app/facility_location.ipynb" download style="font-size:.85rem">Download notebook</a>
+          <a href="facility-location-app/facility-location-problem.xlsx" download style="font-size:.85rem">Download Excel</a>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--purple)">
+        <div class="icon">📈</div>
+        <h3>Portfolio Frontier</h3>
+        <p style="margin:.3rem 0 .75rem">
+          Minimum-variance portfolio for every return level.<br>
+          <strong>Model:</strong> QP &nbsp;·&nbsp; <strong>Solver:</strong> CVXPY + Clarabel
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.75rem">
+          <a href="portfolio-app/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
+          <a href="https://colab.research.google.com/github/frankhuettner/ManSciDA-Excel-to-app/blob/main/portfolio-app/portfolio.ipynb" style="font-size:.85rem">Open in Colab</a>
+          <a href="portfolio-app/portfolio.ipynb" download style="font-size:.85rem">Download notebook</a>
+          <a href="portfolio-app/portfolio-efficient-frontier.xlsx" download style="font-size:.85rem">Download Excel</a>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:1.25rem;font-size:.85rem;color:var(--gray)">
+      The <strong>Open in Colab</strong> links work once the repo is public on GitHub.
+    </p>
+  </div>
+</section>
+
+
+<!-- ── ITERATION ── -->
+<section class="section" id="next-steps">
+  <div class="inner wide">
+    <div class="tag">Iteration &amp; next steps</div>
+    <h2>Ways to improve the app further</h2>
+    <p>The first version is already functional. Here are concrete ways to take it further.</p>
+
+    <div class="iter-grid">
+      <div class="iter-card">
+        <div class="icon">🔌</div>
+        <h3>Live data via API</h3>
+        <p>Fetch prices, exchange rates, or demand forecasts from a public API and feed them directly into the solver — no manual copy-paste needed.</p>
+      </div>
+      <div class="iter-card">
+        <div class="icon">🎚️</div>
+        <h3>Sensitivity sliders</h3>
+        <p>Replace number inputs with range sliders so users can drag a parameter (e.g. demand, capacity) and see the optimal solution update in real time.</p>
+      </div>
+      <div class="iter-card">
+        <div class="icon">📊</div>
+        <h3>Charts &amp; visualisation</h3>
+        <p>Add Chart.js to plot the efficient frontier, cost breakdown bar chart, or allocation heatmap alongside the results table.</p>
+      </div>
+      <div class="iter-card">
+        <div class="icon">🗂️</div>
+        <h3>Scenario comparison</h3>
+        <p>Let users save the current result, change inputs, solve again, and view a side-by-side table comparing multiple scenarios.</p>
+      </div>
+      <div class="iter-card">
+        <div class="icon">💾</div>
+        <h3>CSV / Excel export</h3>
+        <p>Add a download button that exports the results table as a <code>.csv</code> file — works entirely in the browser, no server needed.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-green" style="margin-top:2rem">
+      <strong>How to iterate:</strong>
+      For <em>model changes</em> — tweaking the formulation, adding constraints, trying new data — work in
+      <strong>Excel</strong> or the <strong>notebook</strong>. Both are much faster feedback loops than
+      editing the HTML app. Once the model is right, ask an AI assistant to regenerate or update the app.
+      For <em>UI changes</em> — layout, inputs, charts — paste the <code>index.html</code> back into
+      the AI and describe what you want.
+    </div>
+  </div>
+</section>
+
+
+<!-- ── FOOTER ── -->
+<footer>
+  <p>
+    ManSciDA-Excel-to-app · Management Science &amp; Decision Analytics ·
+    <a href="prompts/">Prompt files</a>
+  </p>
+</footer>
+
+<script>
+  async function copyPrompt(id) {
+    const text = document.getElementById(id).textContent;
+    await navigator.clipboard.writeText(text.trim());
+    // find the button in the same panel
+    const btn = document.getElementById(id).closest(".prompt-wrap").querySelector(".copy-btn");
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
+  }
+
+  function switchTab(key) {
+    const panels = { html: "panel-html", nb: "panel-nb", nb2html: "panel-nb2html" };
+    document.querySelectorAll(".prompt-panel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".ptab").forEach(b => b.classList.remove("active"));
+    document.getElementById(panels[key]).classList.add("active");
+    event.currentTarget.classList.add("active");
+  }
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute("href"))
+        ?.scrollIntoView({ behavior: "smooth" });
+    });
+  });
+
+  // Floating TOC — highlight active section
+  const tocLinks = document.querySelectorAll('#toc a[data-toc]');
+  const sections = [...tocLinks].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const link = document.querySelector(`#toc a[href="#${e.target.id}"]`);
+      if (link) link.classList.toggle('active', e.isIntersecting);
+    });
+  }, { threshold: 0.25 });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

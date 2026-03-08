@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Efficient Frontier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem;
+      color: #111827; background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #7c3aed; padding-bottom: .5rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.1rem; color: #374151; margin: 1.4rem 0 .5rem; }
+    p.subtitle { color: #6b7280; margin: .25rem 0 1.25rem; font-size: .9rem; }
+    code { background: #e5e7eb; padding: .1em .35em; border-radius: 3px; font-size: .875em; }
+
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+
+    /* input tables */
+    .itable { border-collapse: collapse; font-size: .88rem; }
+    .itable th { background: #f5f3ff; padding: .4rem .8rem; border: 1px solid #ddd6fe; font-weight: 600; text-align: center; }
+    .itable td { border: 1px solid #d1d5db; padding: 0; }
+    .itable td.lbl { padding: .3rem .75rem; background: #f3f4f6; font-weight: 600; text-align: right; min-width: 40px; }
+    .itable td.fixed { padding: .3rem .75rem; text-align: center; color: #6b7280; }
+    .itable td input[type=number] {
+      width: 72px; border: none; padding: .3rem .45rem; font-size: .88rem;
+      text-align: right; background: transparent; outline: none;
+    }
+    .itable td input[type=number]:focus { background: #f5f3ff; }
+    .itable td input[disabled] { color: #9ca3af; background: #f9fafb; }
+
+    /* correlation grid */
+    .corr-cell input { width: 60px; }
+
+    /* scalar inputs */
+    .opts { display: flex; flex-direction: column; gap: .7rem; margin-top: .5rem; }
+    .opts label { font-size: .88rem; display: flex; align-items: center; gap: .5rem; }
+    .opts input[type=number] {
+      width: 80px; padding: .3rem .45rem; border: 1px solid #d1d5db;
+      border-radius: 4px; font-size: .88rem; text-align: right;
+    }
+    .opts input[type=checkbox] { width: 16px; height: 16px; accent-color: #7c3aed; }
+
+    button#compute {
+      margin-top: 1.25rem; padding: .65rem 2rem;
+      background: #7c3aed; color: #fff; border: none;
+      border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600;
+    }
+    button#compute:hover:not(:disabled) { background: #6d28d9; }
+    button#compute:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    #status { display: none; margin: .75rem 0; padding: .6rem 1rem; border-radius: 6px; font-size: .9rem; }
+    #status.ok  { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    #status.err { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    /* chart */
+    .chart-wrap { position: relative; height: 360px; }
+
+    /* result tables */
+    .rtable { border-collapse: collapse; font-size: .85rem; width: 100%; margin-top: .5rem; }
+    .rtable th { background: #f5f3ff; padding: .4rem .75rem; border: 1px solid #ddd6fe; text-align: right; }
+    .rtable th:first-child { text-align: left; }
+    .rtable td { border: 1px solid #e5e7eb; padding: .35rem .75rem; text-align: right; }
+    .rtable td:first-child { text-align: left; font-weight: 500; }
+    .rtable tr.highlight td { background: #faf5ff; font-weight: 600; }
+    .rtable tr.minv td { background: #ecfdf5; }
+    .rtable tr.maxs td { background: #eff6ff; }
+
+    #loading { color: #6b7280; font-style: italic; margin: 2rem 0; }
+    #app { display: none; }
+    #results { display: none; }
+  </style>
+</head>
+<body>
+
+<h1>Portfolio Efficient Frontier</h1>
+<p class="subtitle">
+  Find the minimum-variance portfolio for every return level using
+  <strong>CVXPY + Clarabel</strong> — runs entirely in your browser.
+</p>
+
+<div id="loading">Loading Python runtime — first visit ~20 s, then cached…</div>
+
+<div id="app">
+<div class="layout">
+
+  <!-- ── LEFT: inputs ── -->
+  <div>
+    <h2>Assets</h2>
+    <table class="itable">
+      <thead><tr><th></th><th>Return</th><th>Sigma</th></tr></thead>
+      <tbody>
+        <tr><td class="lbl">A</td>
+          <td><input type="number" id="r0" value="0.12" step="0.01"></td>
+          <td><input type="number" id="s0" value="0.22" step="0.01"></td></tr>
+        <tr><td class="lbl">B</td>
+          <td><input type="number" id="r1" value="0.09" step="0.01"></td>
+          <td><input type="number" id="s1" value="0.14" step="0.01"></td></tr>
+        <tr><td class="lbl">C</td>
+          <td><input type="number" id="r2" value="0.05" step="0.01"></td>
+          <td><input type="number" id="s2" value="0.08" step="0.01"></td></tr>
+        <tr><td class="lbl">F <small>(risk-free)</small></td>
+          <td><input type="number" id="r3" value="0.03" step="0.01"></td>
+          <td class="fixed">0</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Correlation (risky assets A, B, C)</h2>
+    <table class="itable">
+      <thead><tr><th></th><th>A</th><th>B</th><th>C</th></tr></thead>
+      <tbody>
+        <tr><td class="lbl">A</td>
+          <td class="fixed">1</td>
+          <td class="corr-cell"><input type="number" id="rho01" value="0.5"  step="0.05" min="-1" max="1" oninput="syncCorr('rho01','rho10')"></td>
+          <td class="corr-cell"><input type="number" id="rho02" value="0.2"  step="0.05" min="-1" max="1" oninput="syncCorr('rho02','rho20')"></td></tr>
+        <tr><td class="lbl">B</td>
+          <td class="corr-cell"><input type="number" id="rho10" value="0.5"  step="0.05" min="-1" max="1" oninput="syncCorr('rho10','rho01')"></td>
+          <td class="fixed">1</td>
+          <td class="corr-cell"><input type="number" id="rho12" value="0.5"  step="0.05" min="-1" max="1" oninput="syncCorr('rho12','rho21')"></td></tr>
+        <tr><td class="lbl">C</td>
+          <td class="corr-cell"><input type="number" id="rho20" value="0.2"  step="0.05" min="-1" max="1" oninput="syncCorr('rho20','rho02')"></td>
+          <td class="corr-cell"><input type="number" id="rho21" value="0.5"  step="0.05" min="-1" max="1" oninput="syncCorr('rho21','rho12')"></td>
+          <td class="fixed">1</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Settings</h2>
+    <div class="opts">
+      <label><input type="checkbox" id="no_short" checked>
+        No short selling on risky stocks (A, B, C)</label>
+      <label><input type="checkbox" id="allow_borrow" checked>
+        Allow borrowing at risk-free rate (F &lt; 0)</label>
+      <label>Target return:&nbsp;
+        <input type="number" id="r_target" value="13" step="0.5" min="0" max="30">
+        %</label>
+      <label>Frontier points:&nbsp;
+        <input type="number" id="n_pts" value="40" step="5" min="10" max="100"></label>
+    </div>
+
+    <button id="compute" onclick="compute()">Compute Frontier</button>
+  </div>
+
+  <!-- ── RIGHT: outputs ── -->
+  <div>
+    <h2>Efficient Frontier</h2>
+    <div id="status"></div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <p style="font-size:.78rem;color:#9ca3af;margin:.25rem 0 0">
+      Click any frontier point to inspect the portfolio weights below.
+    </p>
+
+    <div id="results">
+      <h2>Key portfolios</h2>
+      <table class="rtable" id="key-tbl">
+        <thead>
+          <tr><th>Portfolio</th><th>Return</th><th>Std Dev</th><th>Sharpe</th>
+            <th>A</th><th>B</th><th>C</th><th>F</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h2>Selected weights <span id="selected-label" style="font-weight:400;font-size:.9rem;color:#6b7280"></span></h2>
+      <table class="rtable" id="weights-tbl">
+        <thead><tr><th>Asset</th><th>Return</th><th>Weight</th><th>Contribution</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- .layout -->
+</div><!-- #app -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+
+<script>
+// ── Python solver (CVXPY + Clarabel) ────────────────────────────────────────
+const PYTHON = `
+import json
+import numpy as np
+import cvxpy as cp
+
+def _cov(sig, corr, n_r, n):
+    S = np.zeros((n, n))
+    for i in range(n_r):
+        for j in range(n_r):
+            S[i, j] = corr[i][j] * sig[i] * sig[j]
+    return S
+
+def _qp(r, S, r_tgt, no_short, allow_borrow, n_r):
+    n = len(r)
+    w = cp.Variable(n)
+    cons = [cp.sum(w) == 1, r @ w >= r_tgt]
+    if no_short:
+        cons.append(w[:n_r] >= 0)
+    if not allow_borrow:
+        cons.append(w[n_r:] >= 0)
+    prob = cp.Problem(cp.Minimize(cp.quad_form(w, S)), cons)
+    prob.solve(solver=cp.CLARABEL, verbose=False)
+    if prob.status in ('optimal', 'optimal_inaccurate') and w.value is not None:
+        return w.value
+    return None
+
+def compute_frontier(raw):
+    p         = json.loads(raw)
+    r         = np.array(p['r'])
+    sig       = np.array(p['sig'])
+    corr      = p['corr']
+    no_short  = p['no_short']
+    allow_borrow = p['allow_borrow']
+    n_pts     = int(p['n_pts'])
+    r_tgt_ui  = float(p['r_target']) / 100.0
+    names     = p['names']
+
+    n_r, n = len(r) - 1, len(r)
+    rf      = float(r[-1])
+    S       = _cov(sig, corr, n_r, n)
+
+    # Determine sweep range
+    r_lo = rf + 0.0001
+    r_hi = float(max(r[:n_r]))
+    if allow_borrow:
+        r_hi = r_hi * 1.35   # headroom for leveraged portfolios
+
+    targets = np.linspace(r_lo, r_hi, n_pts).tolist()
+
+    frontier = []
+    for rt in targets:
+        wv = _qp(r, S, rt, no_short, allow_borrow, n_r)
+        if wv is not None:
+            ret  = float(r @ wv)
+            var  = float(wv @ S @ wv)
+            std  = float(np.sqrt(max(var, 0.0)))
+            shp  = float((ret - rf) / std) if std > 1e-9 else 0.0
+            frontier.append({
+                'r':   round(ret * 100, 4),
+                'std': round(std * 100, 4),
+                'shp': round(shp, 4),
+                'w':   [round(float(x), 4) for x in wv.tolist()],
+            })
+
+    if not frontier:
+        return json.dumps({'error': 'No feasible portfolios found. Try relaxing constraints.'})
+
+    # Key portfolios
+    i_mv  = min(range(len(frontier)), key=lambda i: frontier[i]['std'])
+    i_ms  = max(range(len(frontier)), key=lambda i: frontier[i]['shp'])
+
+    # Exact solve for target return
+    wv = _qp(r, S, r_tgt_ui, no_short, allow_borrow, n_r)
+    target_pt = None
+    if wv is not None:
+        ret  = float(r @ wv)
+        var  = float(wv @ S @ wv)
+        std  = float(np.sqrt(max(var, 0.0)))
+        shp  = float((ret - rf) / std) if std > 1e-9 else 0.0
+        target_pt = {
+            'r':   round(ret * 100, 4),
+            'std': round(std * 100, 4),
+            'shp': round(shp, 4),
+            'w':   [round(float(x), 4) for x in wv.tolist()],
+        }
+
+    return json.dumps({
+        'frontier':  frontier,
+        'names':     names,
+        'r':         r.tolist(),
+        'i_mv':      i_mv,
+        'i_ms':      i_ms,
+        'target':    target_pt,
+    })
+`;
+
+// ── State ────────────────────────────────────────────────────────────────────
+let pyodide = null;
+let chart   = null;
+let frontier = [];
+let names    = [];
+let rReturns = [];
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+(async () => {
+  pyodide = await loadPyodide();
+  // Use Pyodide's pre-built index — no micropip, no conflicts
+  await pyodide.loadPackage(["cvxpy-base", "clarabel"]);
+  await pyodide.runPythonAsync(PYTHON);
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display     = "block";
+})();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const n = (id) => parseFloat(document.getElementById(id).value);
+const b = (id) => document.getElementById(id).checked;
+
+function syncCorr(src, dst) {
+  document.getElementById(dst).value = document.getElementById(src).value;
+}
+
+function showStatus(cls, msg) {
+  const el = document.getElementById("status");
+  el.className = cls; el.textContent = msg; el.style.display = "block";
+}
+
+function pct(v, dec=2) { return v.toFixed(dec) + "%"; }
+function fmt(v, dec=4)  { return v.toFixed(dec); }
+
+// ── Main compute ─────────────────────────────────────────────────────────────
+async function compute() {
+  const btn = document.getElementById("compute");
+  btn.disabled = true; btn.textContent = "Computing…";
+  document.getElementById("status").style.display = "none";
+
+  const payload = {
+    r:        [n("r0"), n("r1"), n("r2"), n("r3")],
+    sig:      [n("s0"), n("s1"), n("s2"), 0],
+    corr:     [[1, n("rho01"), n("rho02")],
+               [n("rho10"), 1, n("rho12")],
+               [n("rho20"), n("rho21"), 1]],
+    no_short:     b("no_short"),
+    allow_borrow: b("allow_borrow"),
+    n_pts:        n("n_pts"),
+    r_target:     n("r_target"),
+    names:        ["A", "B", "C", "F"],
+  };
+
+  try {
+    pyodide.globals.set("_payload", JSON.stringify(payload));
+    const raw = await pyodide.runPythonAsync("compute_frontier(_payload)");
+    const res = JSON.parse(raw);
+    if (res.error) { showStatus("err", res.error); }
+    else           { renderAll(res, payload); }
+  } catch(e) {
+    showStatus("err", "Error: " + e.message);
+  }
+
+  btn.disabled = false; btn.textContent = "Compute Frontier";
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function renderAll(res, p) {
+  frontier  = res.frontier;
+  names     = res.names;
+  rReturns  = res.r;
+  const { i_mv, i_ms, target } = res;
+
+  showStatus("ok",
+    `Frontier: ${frontier.length} portfolios  |  ` +
+    `Min-var: return=${pct(frontier[i_mv].r)}, σ=${pct(frontier[i_mv].std)}  |  ` +
+    `Max-Sharpe: return=${pct(frontier[i_ms].r)}, σ=${pct(frontier[i_ms].std)}`
+  );
+
+  drawChart(res, p);
+  renderKeyTable(res, p);
+  if (target) renderWeights(target, `— Target ${pct(p.r_target,0)} return`);
+  document.getElementById("results").style.display = "block";
+}
+
+function drawChart(res, p) {
+  const { frontier, i_mv, i_ms, target } = res;
+
+  const frontierPts = frontier.map(pt => ({ x: pt.std, y: pt.r }));
+
+  // Individual assets (return vs sigma, as %)
+  const rr  = p.r.map(v => v * 100);
+  const ss  = p.sig.map(v => v * 100);
+  const assetPts = names.map((nm, i) => ({ x: ss[i], y: rr[i], label: nm }));
+
+  const datasets = [
+    {
+      label: "Efficient Frontier",
+      data:  frontierPts,
+      type:  "line",
+      borderColor:     "#7c3aed",
+      backgroundColor: "rgba(124,58,237,0.08)",
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: "#7c3aed",
+      tension: 0.3,
+      fill: false,
+      order: 4,
+    },
+    {
+      label: "Assets",
+      data:  assetPts,
+      type:  "scatter",
+      pointStyle: "triangle",
+      pointRadius: 8,
+      backgroundColor: "#f59e0b",
+      borderColor:     "#d97706",
+      order: 1,
+    },
+    {
+      label: "Min Variance",
+      data:  [{ x: frontier[i_mv].std, y: frontier[i_mv].r }],
+      type:  "scatter",
+      pointStyle: "rectRot",
+      pointRadius: 10,
+      backgroundColor: "#10b981",
+      borderColor:     "#059669",
+      order: 2,
+    },
+    {
+      label: "Max Sharpe",
+      data:  [{ x: frontier[i_ms].std, y: frontier[i_ms].r }],
+      type:  "scatter",
+      pointStyle: "star",
+      pointRadius: 10,
+      backgroundColor: "#3b82f6",
+      borderColor:     "#2563eb",
+      order: 2,
+    },
+  ];
+
+  if (target) {
+    datasets.push({
+      label: `Target ${pct(p.r_target, 0)}`,
+      data:  [{ x: target.std, y: target.r }],
+      type:  "scatter",
+      pointStyle: "circle",
+      pointRadius: 10,
+      backgroundColor: "#ef4444",
+      borderColor:     "#b91c1c",
+      order: 1,
+    });
+  }
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 14, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const d = ctx.raw;
+              return `${ctx.dataset.label}: σ=${d.x.toFixed(2)}%  r=${d.y.toFixed(2)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "Standard deviation  (%)" }, min: 0 },
+        y: { title: { display: true, text: "Expected return  (%)" } },
+      },
+      onClick: (evt, elems) => {
+        if (elems.length > 0 && elems[0].datasetIndex === 0) {
+          const i = elems[0].index;
+          renderWeights(frontier[i], `— Frontier point (σ=${pct(frontier[i].std)}, r=${pct(frontier[i].r)})`);
+        }
+      },
+    },
+  });
+}
+
+function renderKeyTable(res, p) {
+  const { frontier, i_mv, i_ms, target } = res;
+  const rows = [
+    { label: "Min Variance", pt: frontier[i_mv], cls: "minv" },
+    { label: "Max Sharpe",   pt: frontier[i_ms], cls: "maxs" },
+  ];
+  if (target) rows.push({ label: `Target ${pct(p.r_target,0)}`, pt: target, cls: "highlight" });
+
+  const tbody = document.querySelector("#key-tbl tbody");
+  tbody.innerHTML = rows.map(({ label, pt, cls }) =>
+    `<tr class="${cls}"><td>${label}</td><td>${pct(pt.r)}</td><td>${pct(pt.std)}</td>
+     <td>${fmt(pt.shp,3)}</td>${pt.w.map(w => `<td>${fmt(w,3)}</td>`).join("")}</tr>`
+  ).join("");
+}
+
+function renderWeights(pt, label) {
+  document.getElementById("selected-label").textContent = label;
+  const tbody = document.querySelector("#weights-tbl tbody");
+  tbody.innerHTML = names.map((nm, i) => {
+    const contrib = (rReturns[i] * pt.w[i] * 100).toFixed(3);
+    return `<tr><td>${nm}</td><td>${pct(rReturns[i]*100)}</td>
+            <td>${fmt(pt.w[i],4)}</td><td>${contrib}%</td></tr>`;
+  }).join("") +
+  `<tr style="font-weight:700;background:#f9fafb">
+    <td>Total</td><td></td>
+    <td>${fmt(pt.w.reduce((a,b)=>a+b,0),4)}</td>
+    <td>${pct(pt.r)}</td></tr>`;
+}
+</script>
+
+</body>
+</html>

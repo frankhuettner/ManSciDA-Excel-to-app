@@ -1,0 +1,22 @@
+[project]
+name = "mansci-da-excel-to-app"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    # Optimization
+    "cvxpy",       # note: PyPI name is "cvxpy"; Pyodide's index calls it "cvxpy-base"
+    "clarabel",    # same in both PyPI and Pyodide
+    "scipy",       # same in both
+    "numpy",       # same in both
+    # Notebook & visualization
+    "matplotlib",
+    "pandas",
+    "jupyter",
+    "ipykernel",
+]
+
+# ── uv workflow ────────────────────────────────────────────────────────────────
+# Install:   uv sync
+# Notebook:  uv run jupyter notebook
+# Test:      uv run python facility-location-app/solver_test.py
+#            uv run python portfolio-app/solver_test.py
