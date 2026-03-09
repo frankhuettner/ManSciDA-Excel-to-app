@@ -43,7 +43,7 @@ Produce a `.ipynb` notebook with these cells in order:
 
 4. **Solver function** — a clean Python function that takes parameters and returns results; identical logic to what would go in a browser app
 
-5. **Solve and test** — call the function with the default values; add `assert` statements to verify the output matches the Excel solution
+5. **Solve and test** — call the function with the default values; define named reference constants for the key Excel Solver outputs (e.g. `EXCEL_COST = 644.0`, `EXCEL_OPEN = [1, 0, 1]`) with a comment noting the run date, then add `assert` statements comparing the solver result to those constants
 
 6. **Results** — display output as `pd.DataFrame` tables with clear labels
 

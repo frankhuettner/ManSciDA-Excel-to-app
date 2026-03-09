@@ -242,6 +242,14 @@
     .steps strong { display: block; margin-bottom: .2rem; }
     .steps p { font-size: .9rem; margin: 0; }
 
+    /* ── code snippets ── */
+    .code-snip {
+      background: var(--gray-light); border: 1px solid var(--gray-mid);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+      font-family: ui-monospace, monospace; font-size: .8rem;
+      line-height: 1.65; overflow-x: auto; margin-top: .75rem; color: var(--text);
+    }
+
     /* ── footer ── */
     footer {
       text-align: center; padding: 2.5rem 1rem;
@@ -259,6 +267,7 @@
   <a href="#environments" data-toc><span class="toc-label">Environments</span><span class="toc-dot"></span></a>
   <a href="#get-started" data-toc><span class="toc-label">Get started</span><span class="toc-dot"></span></a>
   <a href="#examples" data-toc><span class="toc-label">Examples</span><span class="toc-dot"></span></a>
+  <a href="#testing" data-toc><span class="toc-label">Testing</span><span class="toc-dot"></span></a>
   <a href="#next-steps" data-toc><span class="toc-label">Next steps</span><span class="toc-dot"></span></a>
 </nav>
 
@@ -303,6 +312,10 @@
         <span>One file — share the link, anyone can use it</span>
       </div>
     </div>
+    <p style="font-size:.83rem;color:var(--gray);margin-top:.6rem">
+      Before sharing: open the file locally and check the default outputs match your Excel Solver result.
+      That is <a href="#testing">Layer 1 of the testing strategy</a>.
+    </p>
 
     <!-- Via notebook path -->
     <p style="margin-top:2rem;font-weight:600;font-size:.9rem;color:var(--gray)">Optional: via notebook (recommended for complex models)</p>
@@ -322,7 +335,7 @@
       <div class="flow-box" style="border-color:#10b981;background:var(--green-light)">
         <div class="icon">📓</div>
         <strong>Review in Colab</strong>
-        <span>Run cells, check numbers, tweak</span>
+        <span>Run cells, verify assertions, tweak</span>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
@@ -337,6 +350,10 @@
         <span>One file — share the link</span>
       </div>
     </div>
+    <p style="font-size:.83rem;color:var(--gray);margin-top:.6rem">
+      The <code>excel-to-notebook.md</code> prompt generates assert cells automatically — that is
+      <a href="#testing">Layer 2 of the testing strategy</a>, built in from the start.
+    </p>
 
     <div class="callout callout-blue" style="margin-top:1.75rem">
       <strong>The app is the HTML file.</strong>
@@ -757,8 +774,97 @@ Must open directly in a browser from disk.</pre>
 </section>
 
 
+<!-- ── TESTING STRATEGY ── -->
+<section class="section" id="testing">
+  <div class="inner wide">
+    <div class="tag">Testing</div>
+    <h2>A testing strategy that grows with your model</h2>
+    <p>Start with what you already trust — the Excel result — and build upward. Layers 1 and 2 are already wired into the workflow prompts; Layer 3 is optional and can be added with an AI coding agent when the app matures.</p>
+
+    <ol class="steps" style="margin-top:2rem">
+
+      <li>
+        <span class="step-num" style="background:var(--green)">1</span>
+        <div style="flex:1">
+          <strong>Excel — establish the ground truth</strong>
+          <p>Run Excel Solver once with your baseline inputs. Record the optimal objective value, the key decision variables, and which constraints are binding. These numbers <em>are</em> your spec: every downstream environment must reproduce them.</p>
+          <div class="callout callout-green" style="margin-top:.75rem;font-size:.85rem;margin-bottom:0">
+            Both prompts — <code>excel-to-notebook.md</code> and <code>excel-to-html.md</code> — ask the AI to record these values in comments automatically. They serve as permanent documentation and a regression anchor.
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <span class="step-num" style="background:var(--blue)">2</span>
+        <div style="flex:1">
+          <strong>Notebook — assert against the Excel reference</strong>
+          <p>The <code>excel-to-notebook.md</code> prompt already generates this cell — named <code>EXCEL_*</code> constants and <code>assert</code> statements are included automatically. Run the full notebook to confirm the match, then add edge cases by hand as the model grows. Re-run whenever you change the formulation; a broken assertion immediately surfaces regressions.</p>
+          <pre class="code-snip"><code># ── Tests (baseline: Excel Solver run 2025-03-09) ──
+EXCEL_COST  = 1_247.50        # total cost from Excel reference run
+EXCEL_OPEN  = frozenset({0, 2, 4})   # which facilities are opened
+
+result = solve(demand, capacity, fixed_cost, transport_cost)
+
+assert abs(result["total_cost"] - EXCEL_COST) &lt; 0.5, \
+    f"Cost mismatch: {result['total_cost']:.2f} vs {EXCEL_COST}"
+assert frozenset(result["open_facilities"]) == EXCEL_OPEN, \
+    f"Facilities mismatch: {result['open_facilities']}"
+
+print("All assertions passed.")</code></pre>
+          <p style="margin-top:.6rem;font-size:.85rem">Extend with edge cases: zero demand, a single facility forced open, capacity just tight enough to be binding. Each edge case is one extra <code>assert</code> block.</p>
+        </div>
+      </li>
+
+      <li>
+        <span class="step-num" style="background:var(--purple)">3</span>
+        <div style="flex:1">
+          <strong>App — end-to-end with Playwright <span style="font-weight:400;font-size:.85rem;color:var(--gray)">(optional, ~20 lines)</span></strong>
+          <p>A Playwright test loads <code>index.html</code> in a real browser, fills in the baseline inputs, clicks <em>Solve</em>, and checks that the output matches the notebook reference. It catches issues unique to the browser layer — Pyodide loading, JS wiring, DOM serialization — that the notebook alone cannot see.</p>
+          <pre class="code-snip"><code>// tests/app.spec.js  (Playwright)
+import { test, expect } from '@playwright/test';
+import path from 'path';
+
+test('baseline facility-location solve', async ({ page }) =&gt; {
+  await page.goto('file://' + path.resolve('facility-location-app/index.html'));
+  await page.waitForSelector('#solve-btn:not([disabled])'); // Pyodide ready
+
+  // fill baseline inputs (match Excel reference run)
+  await page.fill('#demand-0', '120');
+  await page.fill('#demand-1', '80');
+  // … remaining inputs …
+
+  await page.click('#solve-btn');
+  await page.waitForSelector('#result-cost');   // output rendered
+
+  const cost = await page.textContent('#result-cost');
+  expect(parseFloat(cost)).toBeCloseTo(1247.50, 0);
+});</code></pre>
+          <p style="margin-top:.6rem;font-size:.85rem">
+            Install once: <code>npm init playwright@latest</code>. Run with <code>npx playwright test</code>.
+            Ask an AI coding agent — <strong>Claude Code</strong>, <strong>Gemini CLI</strong>, or <strong>OpenCode</strong> — to generate the full test from your notebook's reference values and the app's HTML. It can read both files and wire them together automatically.
+          </p>
+        </div>
+      </li>
+
+    </ol>
+
+    <div class="callout callout-blue" style="margin-top:2rem">
+      <strong>Keep it proportional.</strong>
+      For a teaching demo or a one-off analysis, Layer 1 alone is fine.
+      For a model used in recurring decisions or shared with colleagues, add Layer 2 — ten minutes to write, hours saved in debugging.
+      Layer 3 earns its keep when the app is actively maintained or the Pyodide/JS glue is non-trivial.
+    </div>
+
+    <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--gray-mid)">
+      <h3 style="margin-bottom:.5rem">Expanding the test suite</h3>
+      <p>Once the three layers are in place, an AI coding agent can push coverage further — additional edge-case cells in the notebook, multi-scenario Playwright runs, or a <code>pytest</code> suite driven by a CSV of test cases. A ready-made prompt for generating the full Playwright spec automatically is listed in <em>Next steps</em> below.</p>
+    </div>
+  </div>
+</section>
+
+
 <!-- ── ITERATION ── -->
-<section class="section" id="next-steps">
+<section class="section alt" id="next-steps">
   <div class="inner wide">
     <div class="tag">Iteration &amp; next steps</div>
     <h2>Ways to improve the app further</h2>
@@ -790,6 +896,11 @@ Must open directly in a browser from disk.</pre>
         <h3>CSV / Excel export</h3>
         <p>Add a download button that exports the results table as a <code>.csv</code> file — works entirely in the browser, no server needed.</p>
       </div>
+      <div class="iter-card">
+        <div class="icon">🧪</div>
+        <h3>E2E test prompt</h3>
+        <p>Use an AI coding agent with your <code>index.html</code> and notebook to auto-generate a full Playwright spec — selectors, baseline inputs, and expected values, all inferred from your files.</p>
+      </div>
     </div>
 
     <div class="callout callout-green" style="margin-top:2rem">
@@ -813,7 +924,7 @@ Must open directly in a browser from disk.</pre>
 
 <!-- ── FOOTER ── -->
 <footer>
-  <p>Frank Huettner · <a href="https://huettner.io">huettner.io</a></p>
+  <p>Frank Huettner · <a href="https://huettner.io">huettner.io</a> · Guide v0.2</p>
 </footer>
 
 <script>

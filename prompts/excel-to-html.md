@@ -114,6 +114,24 @@ total = float(result.fun)
 return json.dumps({"weights": weights, "total": total, ...})
 ```
 
+## Step 6 — Embed reference values
+
+Add a comment block at the top of the `PYTHON` string recording the expected output from your Excel Solver run. This documents the ground truth and gives any future AI agent or developer an immediate anchor for writing tests.
+
+```python
+const PYTHON = `
+# ── Excel reference (baseline: <brief description, e.g. "facility-location default data"> ──
+# EXCEL_objective = <value>       # e.g. total cost, minimum variance
+# EXCEL_open      = [<0/1 list>]  # binary decisions (if applicable)
+# EXCEL_key_var   = <value>       # any other critical output worth pinning
+# Update these values whenever the input data changes; re-validate against Excel Solver.
+# ──────────────────────────────────────────────────────────────────────────────────────────
+
+import json, numpy as np
+# ... solver code ...
+`;
+```
+
 ## Deliver
 
 One complete `index.html`. No separate files. No build step. Must open directly from disk.
