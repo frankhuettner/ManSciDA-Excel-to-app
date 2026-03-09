@@ -382,7 +382,7 @@
         <div class="icon">⚙️</div>
         <span class="badge pill-blue">Solver</span>
         <h3>scipy · CVXPY · Clarabel</h3>
-        <p>scipy for LP &amp; MILP. CVXPY + Clarabel for quadratic programs (e.g. portfolio variance).</p>
+        <p>scipy for LP &amp; MILP. CVXPY + Clarabel for convex programs (QP, SOCP — e.g. portfolio variance).</p>
       </div>
       <div class="card">
         <div class="icon">🖥️</div>
@@ -894,7 +894,12 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
       <div class="iter-card">
         <div class="icon">💾</div>
         <h3>CSV / Excel export</h3>
-        <p>Add a download button that exports the results table as a <code>.csv</code> file — works entirely in the browser, no server needed.</p>
+        <p>Add a download button that exports the results table as a <code>.csv</code> or <code>.xlsx</code> file — works entirely in the browser, no server needed.</p>
+      </div>
+      <div class="iter-card">
+        <div class="icon">🗄️</div>
+        <h3>SQLite — in-browser database</h3>
+        <p>Python's built-in <code>sqlite3</code> works in Pyodide with no extra packages. Store scenario results or lookup tables in an in-memory database for the session, and let users download the <code>.db</code> file to open in any SQLite viewer.</p>
       </div>
       <div class="iter-card">
         <div class="icon">🧪</div>
@@ -924,7 +929,7 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
 
 <!-- ── FOOTER ── -->
 <footer>
-  <p>Frank Huettner · <a href="https://huettner.io">huettner.io</a> · Guide v0.2</p>
+  <p>Frank Huettner · <a href="https://huettner.io">huettner.io</a> · Guide v0.3</p>
 </footer>
 
 <script>
