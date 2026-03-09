@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Efficient Frontier v3 — Scenario Storage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem;
+      color: #111827; background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #7c3aed; padding-bottom: .5rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.1rem; color: #374151; margin: 1.4rem 0 .5rem; }
+    p.subtitle { color: #6b7280; margin: .25rem 0 1.25rem; font-size: .9rem; }
+    code { background: #e5e7eb; padding: .1em .35em; border-radius: 3px; font-size: .875em; }
+    a { color: #7c3aed; }
+
+    .v-badge {
+      font-size: .65em; background: #7c3aed; color: #fff;
+      padding: .1em .45em; border-radius: 4px; vertical-align: middle;
+      font-weight: 700; letter-spacing: .04em; margin-left: .3rem;
+    }
+
+    .layout { display: grid; grid-template-columns: 320px 1fr; gap: 2rem; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── ticker tag input ── */
+    .tag-container {
+      display: flex; flex-wrap: wrap; gap: .35rem;
+      padding: .4rem .5rem; border: 1px solid #d1d5db; border-radius: 6px;
+      background: #fff; cursor: text; min-height: 44px; align-items: center;
+    }
+    .tag-container:focus-within {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124,58,237,.15);
+    }
+    .tag {
+      display: inline-flex; align-items: center; gap: .25rem;
+      background: #ede9fe; color: #5b21b6; border-radius: 4px;
+      padding: .18rem .5rem; font-size: .82rem; font-weight: 700;
+    }
+    .tag button {
+      background: none; border: none; cursor: pointer;
+      color: #7c3aed; padding: 0; font-size: 1.05rem; line-height: 1;
+    }
+    .tag button:hover { color: #4c1d95; }
+    #ticker-input {
+      border: none; outline: none; font-size: .88rem;
+      min-width: 90px; flex: 1; background: transparent;
+    }
+    .tag-hint { font-size: .76rem; color: #9ca3af; margin-top: .3rem; }
+
+    /* ── settings ── */
+    .opts { display: flex; flex-direction: column; gap: .65rem; margin-top: .25rem; }
+    .opts label { font-size: .88rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .opts select, .opts input[type=number] {
+      padding: .3rem .45rem; border: 1px solid #d1d5db;
+      border-radius: 4px; font-size: .88rem;
+    }
+    .opts input[type=number] { width: 82px; text-align: right; }
+    .opts select { width: 82px; }
+    .opts input[type=checkbox] { width: 16px; height: 16px; accent-color: #7c3aed; }
+
+    /* ── compute button ── */
+    button#compute {
+      margin-top: 1.25rem; padding: .65rem 2rem; width: 100%;
+      background: #7c3aed; color: #fff; border: none;
+      border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: 600;
+    }
+    button#compute:hover:not(:disabled) { background: #6d28d9; }
+    button#compute:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    /* ── progress / status ── */
+    #progress { font-size: .82rem; color: #6b7280; margin: .5rem 0; min-height: 1.3em; font-style: italic; }
+    #status { display: none; margin: .75rem 0; padding: .6rem 1rem; border-radius: 6px; font-size: .9rem; }
+    #status.ok  { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    #status.err { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    /* ── chart ── */
+    .chart-wrap { position: relative; height: 360px; }
+
+    /* ── data preview ── */
+    #preview { display: none; margin-bottom: .5rem; }
+    .ptable { border-collapse: collapse; font-size: .85rem; width: 100%; }
+    .ptable th { background: #f5f3ff; padding: .35rem .75rem; border: 1px solid #ddd6fe; text-align: right; font-weight: 600; }
+    .ptable th:first-child { text-align: left; }
+    .ptable td { border: 1px solid #e5e7eb; padding: .3rem .75rem; text-align: right; }
+    .ptable td:first-child { text-align: left; font-weight: 600; }
+
+    /* ── result tables ── */
+    .rtable { border-collapse: collapse; font-size: .85rem; width: 100%; margin-top: .5rem; }
+    .rtable th { background: #f5f3ff; padding: .4rem .75rem; border: 1px solid #ddd6fe; text-align: right; }
+    .rtable th:first-child { text-align: left; }
+    .rtable td { border: 1px solid #e5e7eb; padding: .35rem .75rem; text-align: right; }
+    .rtable td:first-child { text-align: left; font-weight: 500; }
+    .rtable tr.minv td { background: #ecfdf5; }
+    .rtable tr.maxs td { background: #eff6ff; }
+
+    /* ── save row ── */
+    #save-row {
+      display: none; margin-top: 1.25rem; padding: .75rem 1rem;
+      background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px;
+      align-items: center; gap: .6rem; flex-wrap: wrap;
+    }
+    #save-row label { font-size: .88rem; font-weight: 600; color: #5b21b6; white-space: nowrap; }
+    #save-name {
+      flex: 1; min-width: 140px; padding: .32rem .5rem;
+      border: 1px solid #c4b5fd; border-radius: 4px; font-size: .88rem;
+      background: #fff;
+    }
+    #save-name:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
+    #save-btn {
+      padding: .35rem .9rem; background: #7c3aed; color: #fff;
+      border: none; border-radius: 4px; font-size: .88rem; font-weight: 600; cursor: pointer;
+    }
+    #save-btn:hover { background: #6d28d9; }
+
+    /* ── scenarios panel ── */
+    #scenarios-panel { margin-top: 2rem; }
+    .scenarios-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
+    }
+    .scenarios-header h2 { margin: 0; }
+    .db-toolbar { display: flex; gap: .4rem; }
+    .db-toolbar button {
+      padding: .3rem .75rem; font-size: .8rem; font-weight: 600;
+      border: 1px solid #d1d5db; border-radius: 4px;
+      background: #fff; cursor: pointer; color: #374151;
+    }
+    .db-toolbar button:hover { background: #f3f4f6; }
+
+    .stable { border-collapse: collapse; font-size: .83rem; width: 100%; }
+    .stable th {
+      background: #f5f3ff; padding: .35rem .65rem;
+      border: 1px solid #ddd6fe; font-weight: 600; white-space: nowrap;
+    }
+    .stable th:last-child { text-align: center; }
+    .stable td { border: 1px solid #e5e7eb; padding: .32rem .65rem; }
+    .stable td:last-child { text-align: center; white-space: nowrap; }
+    .stable tr:hover td { background: #faf5ff; }
+    .empty-msg { text-align: center; color: #9ca3af; padding: 1rem; font-style: italic; }
+
+    .btn-sm {
+      padding: .2rem .55rem; font-size: .78rem; font-weight: 600;
+      border: none; border-radius: 3px; cursor: pointer;
+    }
+    .btn-sm:hover { filter: brightness(.93); }
+    .btn-load { background: #ede9fe; color: #5b21b6; }
+    .btn-del  { background: #fee2e2; color: #991b1b; margin-left: .25rem; }
+
+    #loading { color: #6b7280; font-style: italic; margin: 2rem 0; }
+    #app     { display: none; }
+    #results { display: none; }
+  </style>
+</head>
+<body>
+
+<h1>Portfolio Efficient Frontier <span class="v-badge">v3</span></h1>
+<p class="subtitle">
+  Live Yahoo Finance prices · CVXPY + Clarabel optimizer · <strong>save and reload named scenarios</strong> via in-browser SQLite.<br>
+  <small>HTTP via <a href="https://corsproxy.io" target="_blank">corsproxy.io</a> → Yahoo Finance &nbsp;·&nbsp;
+  Prices adjusted for dividends and splits &nbsp;·&nbsp;
+  Non-US tickers need a suffix, e.g. <code>SAP.DE</code>, <code>7203.T</code></small>
+</p>
+
+<div id="loading">Loading Python runtime — first visit ~20 s, then cached…</div>
+
+<div id="app">
+<div class="layout">
+
+  <!-- ── LEFT: inputs ── -->
+  <div>
+    <h2>Tickers <small style="font-weight:400;color:#9ca3af">(2 – 10)</small></h2>
+    <div class="tag-container" id="ticker-container"
+         onclick="document.getElementById('ticker-input').focus()">
+      <input id="ticker-input" type="text" placeholder="Type + Enter"
+             maxlength="12" autocomplete="off" autocorrect="off"
+             autocapitalize="characters" spellcheck="false"
+             onkeydown="handleTickerKey(event)"
+             oninput="this.value = this.value.toUpperCase()"
+             onpaste="handlePaste(event)">
+    </div>
+    <p class="tag-hint">Press Enter or comma to add · Backspace removes last · paste a comma-separated list</p>
+
+    <h2>Settings</h2>
+    <div class="opts">
+      <label>Period
+        <select id="period">
+          <option value="1y">1 year</option>
+          <option value="2y" selected>2 years</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </label>
+      <label>Risk-free rate
+        <input type="number" id="rf" value="4.5" step="0.1" min="0" max="20"> %
+      </label>
+      <label><input type="checkbox" id="no_short" checked>
+        No short selling</label>
+      <label>Frontier points
+        <input type="number" id="n_pts" value="50" step="5" min="10" max="100">
+      </label>
+    </div>
+
+    <button id="compute" onclick="run()">Fetch Data &amp; Compute</button>
+    <div id="progress"></div>
+  </div>
+
+  <!-- ── RIGHT: outputs ── -->
+  <div>
+    <div id="status"></div>
+
+    <div id="preview">
+      <h2>Historical statistics</h2>
+      <table class="ptable" id="preview-tbl">
+        <thead>
+          <tr><th>Ticker</th><th>Ann. Return</th><th>Ann. Std Dev</th><th>Trading days</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h2>Efficient Frontier</h2>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <p style="font-size:.78rem;color:#9ca3af;margin:.25rem 0 0">
+      Click any frontier point to inspect the portfolio weights below.
+    </p>
+
+    <div id="results">
+      <h2>Key portfolios</h2>
+      <table class="rtable" id="key-tbl">
+        <thead><tr id="key-hdr"></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <h2>Selected weights
+        <span id="selected-label" style="font-weight:400;font-size:.9rem;color:#6b7280"></span>
+      </h2>
+      <table class="rtable" id="weights-tbl">
+        <thead><tr><th>Ticker</th><th>Ann. Return</th><th>Weight</th><th>Contribution</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- ── Save row (shown after compute or load) ── -->
+    <div id="save-row">
+      <label for="save-name">Save as</label>
+      <input id="save-name" type="text" placeholder="Scenario name…">
+      <button id="save-btn" onclick="saveScenario()">Save</button>
+    </div>
+  </div>
+
+</div><!-- .layout -->
+
+<!-- ── Scenarios panel (full width) ── -->
+<div id="scenarios-panel">
+  <div class="scenarios-header">
+    <h2 style="margin:0">Saved scenarios</h2>
+    <div class="db-toolbar">
+      <button onclick="downloadDb()">⬇ Download .db</button>
+      <button onclick="document.getElementById('db-upload').click()">⬆ Upload .db</button>
+      <input id="db-upload" type="file" accept=".db" style="display:none" onchange="uploadDb(this)">
+    </div>
+  </div>
+  <table class="stable" id="scenarios-tbl">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Tickers</th>
+        <th>Period</th>
+        <th>rf</th>
+        <th>Max-Sharpe r</th>
+        <th>Max-Sharpe σ</th>
+        <th>Saved</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="scenarios-body">
+      <tr><td colspan="8" class="empty-msg">No scenarios saved yet.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- #app -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+
+<script>
+// ── Embedded Python ───────────────────────────────────────────────────────────
+const PYTHON = `
+import json, numpy as np, cvxpy as cp, sqlite3, base64
+from collections import defaultdict
+
+# ── Database ──────────────────────────────────────────────────────────────────
+_conn = None
+
+def db_init():
+    global _conn
+    _conn = sqlite3.connect(":memory:")
+    _conn.execute("""
+        CREATE TABLE IF NOT EXISTS scenarios (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            name     TEXT    NOT NULL,
+            saved_at TEXT    NOT NULL,
+            tickers  TEXT    NOT NULL,
+            period   TEXT    NOT NULL,
+            rf       REAL    NOT NULL,
+            no_short INTEGER NOT NULL,
+            ann_ret  TEXT    NOT NULL,
+            ann_std  TEXT    NOT NULL,
+            n_obs    INTEGER NOT NULL,
+            ms_r     REAL    NOT NULL,
+            ms_std   REAL    NOT NULL,
+            frontier TEXT    NOT NULL,
+            i_mv     INTEGER NOT NULL,
+            i_ms     INTEGER NOT NULL
+        )
+    """)
+    _conn.commit()
+    return "ok"
+
+def db_save(raw):
+    p = json.loads(raw)
+    cur = _conn.execute(
+        """INSERT INTO scenarios
+           (name, saved_at, tickers, period, rf, no_short,
+            ann_ret, ann_std, n_obs, ms_r, ms_std, frontier, i_mv, i_ms)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (p['name'], p['saved_at'],
+         json.dumps(p['tickers']), p['period'],
+         float(p['rf']), int(p['no_short']),
+         json.dumps(p['ann_ret']), json.dumps(p['ann_std']),
+         int(p['n_obs']), float(p['ms_r']), float(p['ms_std']),
+         json.dumps(p['frontier']), int(p['i_mv']), int(p['i_ms']))
+    )
+    _conn.commit()
+    return json.dumps({'id': cur.lastrowid})
+
+def db_list():
+    cur = _conn.execute(
+        """SELECT id, name, saved_at, tickers, period, rf, no_short,
+                  ann_ret, ann_std, n_obs, ms_r, ms_std, i_mv, i_ms
+           FROM scenarios ORDER BY id DESC"""
+    )
+    cols = [d[0] for d in cur.description]
+    rows = []
+    for row in cur.fetchall():
+        d = dict(zip(cols, row))
+        d['tickers'] = json.loads(d['tickers'])
+        d['ann_ret']  = json.loads(d['ann_ret'])
+        d['ann_std']  = json.loads(d['ann_std'])
+        rows.append(d)
+    return json.dumps(rows)
+
+def db_load(raw):
+    p = json.loads(raw)
+    cur = _conn.execute("SELECT * FROM scenarios WHERE id=?", (int(p['id']),))
+    cols = [d[0] for d in cur.description]
+    row = cur.fetchone()
+    if row is None:
+        return json.dumps({'error': 'Scenario not found'})
+    d = dict(zip(cols, row))
+    d['tickers']  = json.loads(d['tickers'])
+    d['ann_ret']  = json.loads(d['ann_ret'])
+    d['ann_std']  = json.loads(d['ann_std'])
+    d['frontier'] = json.loads(d['frontier'])
+    return json.dumps(d)
+
+def db_delete(raw):
+    _conn.execute("DELETE FROM scenarios WHERE id=?", (int(json.loads(raw)['id']),))
+    _conn.commit()
+    return "ok"
+
+def db_export():
+    try:
+        b64 = base64.b64encode(_conn.serialize()).decode('ascii')
+        return json.dumps({'b64': b64})
+    except Exception as e:
+        return json.dumps({'error': str(e)})
+
+def db_import(raw):
+    try:
+        data = base64.b64decode(json.loads(raw)['b64'])
+        _conn.deserialize(data)
+        # Ensure table exists in case uploaded DB has a different schema
+        _conn.execute("""
+            CREATE TABLE IF NOT EXISTS scenarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL, saved_at TEXT NOT NULL,
+                tickers TEXT NOT NULL, period TEXT NOT NULL,
+                rf REAL NOT NULL, no_short INTEGER NOT NULL,
+                ann_ret TEXT NOT NULL, ann_std TEXT NOT NULL,
+                n_obs INTEGER NOT NULL, ms_r REAL NOT NULL, ms_std REAL NOT NULL,
+                frontier TEXT NOT NULL, i_mv INTEGER NOT NULL, i_ms INTEGER NOT NULL
+            )
+        """)
+        _conn.commit()
+        return "ok"
+    except Exception as e:
+        return json.dumps({'error': str(e)})
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+def _build_stats(prices_data):
+    symbols = list(prices_data.keys())
+    n = len(symbols)
+    by_date = defaultdict(dict)
+    for sym, pairs in prices_data.items():
+        for entry in pairs:
+            day = int(entry[0]) // 86400
+            by_date[day][sym] = float(entry[1])
+    common = sorted(d for d, v in by_date.items() if len(v) == n)
+    if len(common) < 60:
+        return None, None, None, (
+            f"Only {len(common)} common trading days (need >= 60). "
+            "Check that all tickers are active over the same period."
+        )
+    P = np.array([[by_date[d][s] for s in symbols] for d in common])
+    log_ret = np.log(P[1:] / P[:-1])
+    ann_ret = np.mean(log_ret, axis=0) * 252
+    ann_cov = np.cov(log_ret.T) * 252 if n > 1 else np.array([[float(np.var(log_ret)) * 252]])
+    return ann_ret, ann_cov, len(common), None
+
+def _qp(ann_ret, ann_cov, r_tgt, no_short):
+    n = len(ann_ret)
+    w = cp.Variable(n)
+    cons = [cp.sum(w) == 1, ann_ret @ w >= r_tgt]
+    if no_short:
+        cons.append(w >= 0)
+    prob = cp.Problem(cp.Minimize(cp.quad_form(w, ann_cov)), cons)
+    prob.solve(solver=cp.CLARABEL, verbose=False)
+    if prob.status in ('optimal', 'optimal_inaccurate') and w.value is not None:
+        return w.value
+    return None
+
+def process_and_optimize(raw):
+    p        = json.loads(raw)
+    prices_d = p['prices']
+    rf       = float(p.get('rf', 0.045))
+    no_short = bool(p.get('no_short', True))
+    n_pts    = int(p.get('n_pts', 50))
+    symbols  = list(prices_d.keys())
+    n        = len(symbols)
+
+    if n < 2:
+        return json.dumps({'error': 'Need at least 2 tickers.'})
+
+    ann_ret, ann_cov, n_obs, err = _build_stats(prices_d)
+    if err:
+        return json.dumps({'error': err})
+
+    r_lo = rf + 0.001
+    r_hi = float(np.max(ann_ret)) * 1.3
+    if r_hi <= r_lo:
+        r_hi = r_lo + 0.15
+
+    targets  = np.linspace(r_lo, r_hi, n_pts).tolist()
+    frontier = []
+    for rt in targets:
+        wv = _qp(ann_ret, ann_cov, rt, no_short)
+        if wv is not None:
+            ret = float(ann_ret @ wv)
+            var = float(wv @ ann_cov @ wv)
+            std = float(np.sqrt(max(var, 0.0)))
+            shp = float((ret - rf) / std) if std > 1e-9 else 0.0
+            frontier.append({
+                'r':   round(ret * 100, 4),
+                'std': round(std * 100, 4),
+                'shp': round(shp, 4),
+                'w':   [round(float(x), 4) for x in wv.tolist()],
+            })
+
+    if not frontier:
+        return json.dumps({'error': 'No feasible portfolios found. Try relaxing constraints or choosing different tickers.'})
+
+    i_mv = min(range(len(frontier)), key=lambda i: frontier[i]['std'])
+    i_ms = max(range(len(frontier)), key=lambda i: frontier[i]['shp'])
+
+    return json.dumps({
+        'frontier': frontier,
+        'names':    symbols,
+        'ann_ret':  [round(float(x) * 100, 2) for x in ann_ret.tolist()],
+        'ann_std':  [round(float(np.sqrt(ann_cov[i, i])) * 100, 2) for i in range(n)],
+        'i_mv':     i_mv,
+        'i_ms':     i_ms,
+        'n_obs':    n_obs,
+    })
+`;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let pyodide       = null;
+let chart         = null;
+let frontier      = [];
+let names         = [];
+let annRet        = [];
+let currentResult = null;
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  pyodide = await loadPyodide();
+  await pyodide.loadPackage(["cvxpy-base", "clarabel"]);
+  await pyodide.runPythonAsync(PYTHON);
+  await pyodide.runPythonAsync("db_init()");
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display     = "block";
+  renderTags();
+  await refreshScenarios();
+})();
+
+// ── Ticker tag UI ─────────────────────────────────────────────────────────────
+const tickerSet = new Set(["AAPL", "MSFT", "GOOGL", "AMZN"]);
+
+function renderTags() {
+  const container = document.getElementById("ticker-container");
+  const input     = document.getElementById("ticker-input");
+  container.querySelectorAll(".tag").forEach(t => t.remove());
+  for (const sym of tickerSet) {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.dataset.sym = sym;
+    tag.innerHTML =
+      `${sym} <button type="button" onclick="removeTicker('${sym}')" title="Remove ${sym}">×</button>`;
+    container.insertBefore(tag, input);
+  }
+}
+
+function addTicker(raw) {
+  const sym = raw.trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g, "");
+  if (!sym || tickerSet.has(sym)) return;
+  if (tickerSet.size >= 10) { alert("Maximum 10 tickers."); return; }
+  tickerSet.add(sym);
+  renderTags();
+}
+
+function removeTicker(sym) {
+  tickerSet.delete(sym);
+  renderTags();
+}
+
+function handleTickerKey(e) {
+  const input = e.target;
+  if (e.key === "Enter" || e.key === ",") {
+    e.preventDefault();
+    if (input.value.trim()) { addTicker(input.value); input.value = ""; }
+  } else if (e.key === "Backspace" && !input.value && tickerSet.size > 0) {
+    removeTicker([...tickerSet].at(-1));
+  }
+}
+
+function handlePaste(e) {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  text.split(/[,\s]+/).filter(Boolean).forEach(addTicker);
+  e.target.value = "";
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const getNum  = (id) => parseFloat(document.getElementById(id).value);
+const getBool = (id) => document.getElementById(id).checked;
+const getSel  = (id) => document.getElementById(id).value;
+
+function setProgress(msg) { document.getElementById("progress").textContent = msg; }
+
+function showStatus(cls, msg) {
+  const el = document.getElementById("status");
+  el.className = cls; el.textContent = msg; el.style.display = "block";
+}
+
+function toast(msg) {
+  const el = document.createElement("div");
+  el.style.cssText =
+    "position:fixed;bottom:1.5rem;right:1.5rem;background:#5b21b6;color:#fff;" +
+    "padding:.6rem 1.1rem;border-radius:6px;font-size:.88rem;z-index:9999;" +
+    "box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .4s";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, 2200);
+}
+
+function pct(v, dec = 2) { return v.toFixed(dec) + "%"; }
+function fmt(v, dec = 4)  { return v.toFixed(dec); }
+
+// ── Yahoo Finance fetch ───────────────────────────────────────────────────────
+const PROXY = "https://corsproxy.io/?url=";
+const YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/";
+
+async function fetchTicker(symbol, period) {
+  const url     = `${YAHOO}${encodeURIComponent(symbol)}?interval=1d&range=${period}`;
+  const proxied = PROXY + encodeURIComponent(url);
+
+  let res;
+  try {
+    res = await fetch(proxied);
+  } catch (e) {
+    throw new Error(
+      `Network error fetching ${symbol}. ` +
+      `The CORS proxy (corsproxy.io) may be unavailable — ` +
+      `try the companion notebook for a direct yfinance download.`
+    );
+  }
+
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${symbol}.`);
+  const json = await res.json();
+
+  if (json.chart?.error) {
+    throw new Error(`Yahoo Finance error for ${symbol}: ${json.chart.error.description || "unknown"}`);
+  }
+  if (!json.chart?.result?.[0]) {
+    throw new Error(
+      `No data returned for "${symbol}". ` +
+      `Check the ticker symbol — non-US exchanges need a suffix (e.g. SAP.DE, 7203.T).`
+    );
+  }
+
+  const result     = json.chart.result[0];
+  const timestamps = result.timestamp || [];
+  const adjclose   = result.indicators?.adjclose?.[0]?.adjclose || [];
+
+  const pairs = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    const p = adjclose[i];
+    if (p != null && !isNaN(p) && p > 0) pairs.push([timestamps[i], p]);
+  }
+
+  if (pairs.length < 60) {
+    throw new Error(`Too few valid prices for ${symbol}: found ${pairs.length}, need at least 60.`);
+  }
+  return pairs;
+}
+
+// ── Main compute ──────────────────────────────────────────────────────────────
+async function run() {
+  const syms = [...tickerSet];
+  if (syms.length < 2) { showStatus("err", "Add at least 2 tickers."); return; }
+
+  const btn = document.getElementById("compute");
+  btn.disabled = true; btn.textContent = "Working…";
+  document.getElementById("status").style.display  = "none";
+  document.getElementById("results").style.display = "none";
+  document.getElementById("preview").style.display = "none";
+  document.getElementById("save-row").style.display = "none";
+
+  // Fetch prices
+  const prices = {};
+  try {
+    for (let i = 0; i < syms.length; i++) {
+      setProgress(`Fetching ${syms[i]}… (${i + 1} / ${syms.length})`);
+      prices[syms[i]] = await fetchTicker(syms[i], getSel("period"));
+    }
+  } catch (e) {
+    showStatus("err", e.message);
+    btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+    setProgress("");
+    return;
+  }
+
+  // Optimise
+  setProgress("Computing efficient frontier…");
+  const payload = {
+    prices,
+    rf:       getNum("rf") / 100,
+    no_short: getBool("no_short"),
+    n_pts:    getNum("n_pts"),
+  };
+
+  let res;
+  try {
+    pyodide.globals.set("_payload", JSON.stringify(payload));
+    const raw = await pyodide.runPythonAsync("process_and_optimize(_payload)");
+    res = JSON.parse(raw);
+  } catch (e) {
+    showStatus("err", "Solver error: " + e.message);
+    btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+    setProgress("");
+    return;
+  }
+
+  setProgress("");
+  btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+
+  if (res.error) { showStatus("err", res.error); return; }
+  renderAll(res);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll(res) {
+  currentResult = res;
+  frontier = res.frontier;
+  names    = res.names;
+  annRet   = res.ann_ret;
+  const { ann_std, i_mv, i_ms, n_obs } = res;
+
+  showStatus("ok",
+    `${n_obs} trading days  ·  ` +
+    `Min-var: r=${pct(frontier[i_mv].r)}, σ=${pct(frontier[i_mv].std)}  ·  ` +
+    `Max-Sharpe: r=${pct(frontier[i_ms].r)}, σ=${pct(frontier[i_ms].std)}`
+  );
+
+  // Data preview
+  const pbody = document.querySelector("#preview-tbl tbody");
+  pbody.innerHTML = names.map((nm, i) =>
+    `<tr><td>${nm}</td><td>${pct(annRet[i])}</td><td>${pct(ann_std[i])}</td><td>${n_obs}</td></tr>`
+  ).join("");
+  document.getElementById("preview").style.display = "block";
+
+  drawChart(res);
+  renderKeyTable(res);
+  renderWeights(
+    frontier[i_ms],
+    `— Max Sharpe (σ=${pct(frontier[i_ms].std)}, r=${pct(frontier[i_ms].r)})`
+  );
+  document.getElementById("results").style.display = "block";
+
+  // Show save row with pre-filled name
+  const defaultName = names.join("/") + "  " + getSel("period");
+  document.getElementById("save-name").value = defaultName;
+  document.getElementById("save-row").style.display = "flex";
+}
+
+function drawChart(res) {
+  const { frontier: fr, ann_ret, ann_std, i_mv, i_ms } = res;
+
+  const datasets = [
+    {
+      label: "Efficient Frontier",
+      data:  fr.map(pt => ({ x: pt.std, y: pt.r })), type: "line",
+      borderColor: "#7c3aed", backgroundColor: "rgba(124,58,237,.08)",
+      pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: "#7c3aed",
+      tension: 0.3, fill: false, order: 4,
+    },
+    {
+      label: "Assets",
+      data:  names.map((_, i) => ({ x: ann_std[i], y: ann_ret[i] })), type: "scatter",
+      pointStyle: "triangle", pointRadius: 8,
+      backgroundColor: "#f59e0b", borderColor: "#d97706", order: 1,
+    },
+    {
+      label: "Min Variance",
+      data:  [{ x: fr[i_mv].std, y: fr[i_mv].r }], type: "scatter",
+      pointStyle: "rectRot", pointRadius: 10,
+      backgroundColor: "#10b981", borderColor: "#059669", order: 2,
+    },
+    {
+      label: "Max Sharpe",
+      data:  [{ x: fr[i_ms].std, y: fr[i_ms].r }], type: "scatter",
+      pointStyle: "star", pointRadius: 10,
+      backgroundColor: "#3b82f6", borderColor: "#2563eb", order: 2,
+    },
+  ];
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "scatter",
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 14, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const d = ctx.raw;
+              return `${ctx.dataset.label}: σ=${d.x.toFixed(2)}%  r=${d.y.toFixed(2)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "Standard deviation (%)" }, min: 0 },
+        y: { title: { display: true, text: "Expected return (%)" } },
+      },
+      onClick: (evt, elems) => {
+        if (elems.length > 0 && elems[0].datasetIndex === 0) {
+          const i = elems[0].index;
+          renderWeights(
+            frontier[i],
+            `— Frontier point (σ=${pct(frontier[i].std)}, r=${pct(frontier[i].r)})`
+          );
+        }
+      },
+    },
+  });
+
+  // Ticker labels on asset points
+  Chart.register({
+    id: "tickerLabels",
+    afterDatasetsDraw(ch) {
+      const ds = ch.data.datasets[1];
+      if (!ds) return;
+      const ctx2 = ch.ctx;
+      ctx2.save();
+      ctx2.font = "bold 11px system-ui, sans-serif";
+      ctx2.fillStyle = "#92400e";
+      ctx2.textBaseline = "middle";
+      ds.data.forEach((_, i) => {
+        const meta = ch.getDatasetMeta(1);
+        if (!meta.data[i]) return;
+        const { x, y } = meta.data[i].getProps(["x", "y"], true);
+        ctx2.fillText(names[i], x + 8, y - 6);
+      });
+      ctx2.restore();
+    },
+  });
+}
+
+function renderKeyTable(res) {
+  const { frontier: fr, i_mv, i_ms } = res;
+  document.getElementById("key-hdr").innerHTML =
+    `<th>Portfolio</th><th>Return</th><th>Std Dev</th><th>Sharpe</th>` +
+    names.map(nm => `<th>${nm}</th>`).join("");
+
+  document.querySelector("#key-tbl tbody").innerHTML = [
+    { label: "Min Variance", pt: fr[i_mv], cls: "minv" },
+    { label: "Max Sharpe",   pt: fr[i_ms], cls: "maxs" },
+  ].map(({ label, pt, cls }) =>
+    `<tr class="${cls}"><td>${label}</td><td>${pct(pt.r)}</td>` +
+    `<td>${pct(pt.std)}</td><td>${fmt(pt.shp, 3)}</td>` +
+    pt.w.map(w => `<td>${fmt(w, 3)}</td>`).join("") + `</tr>`
+  ).join("");
+}
+
+function renderWeights(pt, label) {
+  document.getElementById("selected-label").textContent = label;
+  document.querySelector("#weights-tbl tbody").innerHTML =
+    names.map((nm, i) => {
+      const contrib = (annRet[i] * pt.w[i]).toFixed(3);
+      return `<tr><td>${nm}</td><td>${pct(annRet[i])}</td>` +
+             `<td>${fmt(pt.w[i], 4)}</td><td>${contrib}%</td></tr>`;
+    }).join("") +
+    `<tr style="font-weight:700;background:#f9fafb">
+       <td>Total</td><td></td>
+       <td>${fmt(pt.w.reduce((a, b) => a + b, 0), 4)}</td>
+       <td>${pct(pt.r)}</td>
+     </tr>`;
+}
+
+// ── Scenario save ─────────────────────────────────────────────────────────────
+async function saveScenario() {
+  const name = document.getElementById("save-name").value.trim();
+  if (!name) { alert("Enter a scenario name."); return; }
+  if (!currentResult) return;
+
+  const ms = currentResult.frontier[currentResult.i_ms];
+  const payload = {
+    name,
+    saved_at:  new Date().toISOString().slice(0, 19),
+    tickers:   currentResult.names,
+    period:    getSel("period"),
+    rf:        getNum("rf") / 100,
+    no_short:  getBool("no_short") ? 1 : 0,
+    ann_ret:   currentResult.ann_ret,
+    ann_std:   currentResult.ann_std,
+    n_obs:     currentResult.n_obs,
+    ms_r:      ms.r,
+    ms_std:    ms.std,
+    frontier:  currentResult.frontier,
+    i_mv:      currentResult.i_mv,
+    i_ms:      currentResult.i_ms,
+  };
+
+  pyodide.globals.set("_payload", JSON.stringify(payload));
+  await pyodide.runPythonAsync("db_save(_payload)");
+  await refreshScenarios();
+  toast("Scenario saved.");
+}
+
+// ── Scenario load ─────────────────────────────────────────────────────────────
+async function loadScenario(id) {
+  pyodide.globals.set("_payload", JSON.stringify({ id }));
+  const raw = await pyodide.runPythonAsync("db_load(_payload)");
+  const s   = JSON.parse(raw);
+  if (s.error) { showStatus("err", s.error); return; }
+
+  // Restore tickers
+  tickerSet.clear();
+  s.tickers.forEach(t => tickerSet.add(t));
+  renderTags();
+
+  // Restore settings
+  document.getElementById("period").value    = s.period;
+  document.getElementById("rf").value        = (s.rf * 100).toFixed(1);
+  document.getElementById("no_short").checked = s.no_short === 1;
+
+  // Restore results from stored data (no re-fetch needed)
+  const res = {
+    frontier: s.frontier,
+    names:    s.tickers,
+    ann_ret:  s.ann_ret,
+    ann_std:  s.ann_std,
+    i_mv:     s.i_mv,
+    i_ms:     s.i_ms,
+    n_obs:    s.n_obs,
+  };
+
+  renderAll(res);
+
+  // Pre-fill save name with the loaded scenario name
+  document.getElementById("save-name").value = s.name;
+
+  document.getElementById("status").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ── Scenario delete ───────────────────────────────────────────────────────────
+async function deleteScenario(id) {
+  if (!confirm("Delete this scenario?")) return;
+  pyodide.globals.set("_payload", JSON.stringify({ id }));
+  await pyodide.runPythonAsync("db_delete(_payload)");
+  await refreshScenarios();
+}
+
+// ── Scenarios table ───────────────────────────────────────────────────────────
+async function refreshScenarios() {
+  const raw       = await pyodide.runPythonAsync("db_list()");
+  const scenarios = JSON.parse(raw);
+  const tbody     = document.getElementById("scenarios-body");
+
+  if (scenarios.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-msg">No scenarios saved yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = scenarios.map(s => {
+    const tickers  = s.tickers.join(", ");
+    const rfPct    = (s.rf * 100).toFixed(1) + "%";
+    const noShort  = s.no_short ? "yes" : "no";
+    const date     = s.saved_at.replace("T", " ");
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${tickers}</td>
+      <td>${s.period}</td>
+      <td>${rfPct}</td>
+      <td>${s.ms_r.toFixed(2)}%</td>
+      <td>${s.ms_std.toFixed(2)}%</td>
+      <td style="color:#9ca3af;font-size:.8rem">${date}</td>
+      <td>
+        <button class="btn-sm btn-load" onclick="loadScenario(${s.id})">Load</button>
+        <button class="btn-sm btn-del"  onclick="deleteScenario(${s.id})">Delete</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ── DB export / import ────────────────────────────────────────────────────────
+async function downloadDb() {
+  const raw = await pyodide.runPythonAsync("db_export()");
+  const res = JSON.parse(raw);
+  if (res.error) { showStatus("err", "Export failed: " + res.error); return; }
+
+  const bytes = Uint8Array.from(atob(res.b64), c => c.charCodeAt(0));
+  const blob  = new Blob([bytes], { type: "application/octet-stream" });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement("a");
+  a.href = url; a.download = "portfolio-scenarios.db";
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+async function uploadDb(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const buf = await file.arrayBuffer();
+  // Encode Uint8Array to base64 without spread (safe for large files)
+  const bytes = new Uint8Array(buf);
+  let binary  = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const b64 = btoa(binary);
+
+  pyodide.globals.set("_payload", JSON.stringify({ b64 }));
+  const result = await pyodide.runPythonAsync("db_import(_payload)");
+  input.value = "";
+
+  if (result !== "ok") {
+    try {
+      const err = JSON.parse(result);
+      showStatus("err", "Import failed: " + (err.error || result));
+    } catch { showStatus("err", "Import failed."); }
+    return;
+  }
+
+  await refreshScenarios();
+  toast("Database imported.");
+}
+</script>
+
+</body>
+</html>
