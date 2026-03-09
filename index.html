@@ -793,12 +793,19 @@ Must open directly in a browser from disk.</pre>
     </div>
 
     <div class="callout callout-green" style="margin-top:2rem">
-      <strong>How to iterate:</strong>
-      For <em>model changes</em> — tweaking the formulation, adding constraints, trying new data — work in
-      <strong>Excel</strong> or the <strong>notebook</strong>. Both are much faster feedback loops than
-      editing the HTML app. Once the model is right, ask an AI assistant to regenerate or update the app.
-      For <em>UI changes</em> — layout, inputs, charts — paste the <code>index.html</code> back into
-      the AI and describe what you want.
+      <strong>How to iterate</strong>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.75rem">
+        <div>
+          <div style="font-weight:600;margin-bottom:.35rem">Model changes</div>
+          <p style="margin:0 0 .4rem">Tweaking the formulation, adding constraints, trying new data? Work in <strong>Excel</strong> or the <strong>notebook</strong> — both give a much faster feedback loop than editing the app directly.</p>
+          <p style="margin:0">Once the model is right, hand off to an AI coding agent to regenerate or update the app.</p>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:.35rem">UI changes</div>
+          <p style="margin:0 0 .4rem">Layout, inputs, charts, copy? Paste <code>index.html</code> into an AI coding agent and describe what you want.</p>
+          <p style="margin:0">For targeted edits — a specific function, a single section — use an agentic CLI tool like <strong>Claude Code</strong>, <strong>Gemini CLI</strong>, or <strong>OpenCode</strong>. They can locate and change exactly the right lines without touching the rest.</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
