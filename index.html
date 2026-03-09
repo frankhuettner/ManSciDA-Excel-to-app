@@ -766,6 +766,7 @@ Must open directly in a browser from disk.</pre>
           <a href="portfolio-app/portfolio-efficient-frontier.xlsx" download style="font-size:.85rem">Download Excel</a>
         </div>
       </div>
+
     </div>
     <p style="margin-top:1.25rem;font-size:.85rem;color:var(--gray)">
       The <strong>Open in Colab</strong> links work once the repo is public on GitHub.
@@ -913,17 +914,34 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
       </div>
     </div>
 
-    <div style="margin-top:1.75rem;padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--blue);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
-      <span style="font-size:1.6rem;line-height:1">🏭</span>
-      <div>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
-          <strong>Facility Location</strong>
-          <span style="background:#2563eb;color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
+    <div style="margin-top:1.75rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--blue);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
+        <span style="font-size:1.6rem;line-height:1">🏭</span>
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+            <strong>Facility Location</strong>
+            <span style="background:#2563eb;color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
+          </div>
+          <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">A worked example combining several of the above: dynamic add/remove of servers and demand nodes, a geographic canvas map with flow lines, and XLSX data import/export. The expansion prompt itself was written with AI — describe the features you want and ask an AI assistant to draft the prompt for you.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+            <a href="facility-location-app-v2/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
+            <a href="prompts/expand-facility-location.md" style="font-size:.85rem">Expansion prompt</a>
+          </div>
         </div>
-        <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">A worked example combining several of the above: dynamic add/remove of servers and demand nodes, a geographic canvas map with flow lines, and XLSX data import/export. The expansion prompt itself was written with AI — describe the features you want and ask an AI assistant to draft the prompt for you.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
-          <a href="facility-location-app-v2/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
-          <a href="prompts/expand-facility-location.md" style="font-size:.85rem">Expansion prompt</a>
+      </div>
+
+      <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--purple);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
+        <span style="font-size:1.6rem;line-height:1">📈</span>
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+            <strong>Portfolio Frontier</strong>
+            <span style="background:var(--purple);color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
+          </div>
+          <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">Live Yahoo Finance prices for any tickers you choose — returns and covariance computed from history. A ticker tag UI replaces manual inputs; JavaScript fetches the data so the Python runtime stays as fast as v1.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
+            <a href="portfolio-app-v2/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
+            <a href="prompts/expand-portfolio.md" style="font-size:.85rem">Expansion prompt</a>
+          </div>
         </div>
       </div>
     </div>
