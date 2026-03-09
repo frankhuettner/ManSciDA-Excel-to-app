@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facility Deployment Optimizer v2</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1140px; margin: 0 auto; padding: 1.5rem 1rem;
+      color: #111827; background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #2563eb; padding-bottom: .5rem; margin-bottom: .25rem; }
+    h2 { font-size: 1.05rem; color: #374151; margin: 1.25rem 0 .45rem; font-weight: 700; }
+    p.subtitle { color: #6b7280; margin: .25rem 0 1rem; font-size: .88rem; max-width: 70ch; }
+    code { background: #e5e7eb; padding: .1em .35em; border-radius: 3px; font-size: .875em; }
+
+    /* ── toolbar ── */
+    .toolbar {
+      display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;
+      margin: .75rem 0 1.25rem; padding: .55rem .8rem;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    }
+    .toolbar-sep { color: #d1d5db; padding: 0 .25rem; user-select: none; }
+
+    /* ── buttons ── */
+    .btn {
+      padding: .38rem .85rem; border-radius: 5px; border: 1px solid transparent;
+      font-size: .82rem; font-weight: 600; cursor: pointer; transition: filter .15s;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary  { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .btn-secondary{ background: #e5e7eb; color: #374151; }
+    .btn-danger   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+.btn-xs       { padding: .2rem .5rem; font-size: .76rem; }
+    #solve-btn {
+      margin-top: 1.25rem; padding: .65rem 2.2rem; font-size: .98rem;
+      background: #2563eb; color: #fff; border: none; border-radius: 6px;
+      font-weight: 700; cursor: pointer;
+    }
+    #solve-btn:hover:not(:disabled) { background: #1d4ed8; }
+    #solve-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    /* ── two-column layout ── */
+    .layout { display: grid; grid-template-columns: 1fr 380px; gap: 1.75rem; align-items: start; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── dynamic data tables (reps / regions) ── */
+    .data-table { border-collapse: collapse; font-size: .82rem; width: 100%; }
+    .data-table th {
+      background: #eff6ff; padding: .32rem .55rem;
+      border: 1px solid #bfdbfe; font-weight: 600; text-align: center; white-space: nowrap;
+    }
+    .data-table td { border: 1px solid #d1d5db; padding: 0; }
+    .data-table td.act { padding: .2rem .35rem; text-align: center; }
+    .data-table input {
+      width: 100%; min-width: 52px; border: none; padding: .28rem .4rem;
+      font-size: .82rem; background: transparent; outline: none; text-align: right;
+    }
+    .data-table input.name-in { text-align: left; min-width: 72px; }
+    .data-table input:focus { background: #eff6ff; }
+
+    /* ── cost matrix ── */
+    #cost-wrap { overflow-x: auto; margin-top: .25rem; }
+    #cost-tbl { border-collapse: collapse; font-size: .82rem; }
+    #cost-tbl th {
+      background: #f0fdf4; padding: .3rem .55rem; border: 1px solid #bbf7d0;
+      font-weight: 600; text-align: center; white-space: nowrap;
+    }
+    #cost-tbl td { border: 1px solid #d1d5db; padding: 0; }
+    #cost-tbl td.lbl { padding: .3rem .6rem; background: #eff6ff; font-weight: 600; white-space: nowrap; }
+    #cost-tbl input {
+      width: 68px; border: none; padding: .28rem .4rem;
+      font-size: .82rem; text-align: right; background: transparent; outline: none;
+    }
+    #cost-tbl input:focus { background: #f0fdf4; }
+
+    /* ── map panel ── */
+    #map-panel { position: sticky; top: 1rem; }
+    #map { border: 1px solid #d1d5db; border-radius: 6px; background: #fff; display: block; width: 100%; }
+
+    /* ── status ── */
+    #status {
+      display: none; margin: .75rem 0; padding: .6rem 1rem;
+      border-radius: 6px; font-size: .9rem; font-weight: 500;
+    }
+    #status.ok  { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+    #status.err { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    /* ── result tables ── */
+    .rtable { border-collapse: collapse; font-size: .85rem; margin-bottom: 1rem; }
+    .rtable th {
+      background: #eff6ff; padding: .32rem .85rem;
+      border: 1px solid #bfdbfe; font-weight: 600; text-align: right;
+    }
+    .rtable th:first-child { text-align: left; }
+    .rtable td { border: 1px solid #d1d5db; padding: .28rem .85rem; text-align: right; }
+    .rtable td:first-child { text-align: left; font-weight: 500; }
+    .rtable tr.total td { font-weight: 700; background: #f3f4f6; }
+    .rtable tr.sub td   { color: #6b7280; font-size: .82rem; }
+
+    /* ── misc ── */
+    #loading { color: #6b7280; font-style: italic; margin: 2rem 0; }
+    #app { display: none; }
+    .section-block { margin-bottom: 1.1rem; }
+    .add-row { margin-top: .4rem; }
+  </style>
+</head>
+<body>
+
+<h1>Facility Deployment Optimizer <span style="font-size:.72em;color:#9ca3af;font-weight:400">v2</span></h1>
+<p class="subtitle">
+  Decide which servers to open and how to assign demand nodes to them,
+  minimising total cost = fixed opening costs + service costs.
+</p>
+
+<!-- ── toolbar ── -->
+<div class="toolbar">
+  <button class="btn btn-secondary" onclick="downloadTemplate()">↓ Template XLSX</button>
+  <label class="btn btn-secondary" style="cursor:pointer">
+    ↑ Upload XLSX <input type="file" accept=".xlsx" style="display:none" onchange="uploadFile(event)">
+  </label>
+</div>
+
+<div id="loading">Loading Python runtime — first visit ~15 s, then cached by the browser…</div>
+
+<div id="app">
+  <div class="layout">
+
+    <!-- ── LEFT: inputs ── -->
+    <div>
+
+      <!-- Servers -->
+      <div class="section-block">
+        <h2>Servers</h2>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Map X</th><th>Map Y</th><th>Fixed cost</th><th>Capacity</th><th></th></tr>
+            </thead>
+            <tbody id="reps-body"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-secondary add-row" onclick="addRep()">+ Add server</button>
+      </div>
+
+      <!-- Demand regions -->
+      <div class="section-block">
+        <h2>Demand Nodes</h2>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Map X</th><th>Map Y</th><th>Demand</th><th></th></tr>
+            </thead>
+            <tbody id="regions-body"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-secondary add-row" onclick="addRegion()">+ Add node</button>
+      </div>
+
+      <!-- Cost matrix -->
+      <div class="section-block">
+        <h2>Service cost matrix <span style="font-weight:400;color:#9ca3af;font-size:.85em">(rows = nodes, columns = servers)</span></h2>
+        <div id="cost-wrap"><table id="cost-tbl"></table></div>
+      </div>
+
+      <button id="solve-btn" onclick="runSolver()">Solve</button>
+    </div>
+
+    <!-- ── RIGHT: canvas map ── -->
+    <div id="map-panel">
+      <h2>Map</h2>
+      <canvas id="map" width="360" height="360"></canvas>
+      <p style="font-size:.74rem;color:#9ca3af;margin-top:.3rem">
+        Squares = servers (green = open). Circles = demand nodes (size ∝ demand).
+        Lines = allocation after solving.
+      </p>
+    </div>
+
+  </div><!-- .layout -->
+
+  <!-- Results -->
+  <div id="status"></div>
+  <div id="results"></div>
+
+</div><!-- #app -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════════════════════════
+// PYTHON  (runs inside Pyodide)
+// ═══════════════════════════════════════════════════════════════════════
+const PYTHON = `
+import json, numpy as np
+from scipy.optimize import milp, LinearConstraint, Bounds
+
+# ── Excel reference (baseline: default 3-server × 3-node data) ─────────
+# EXCEL_OPEN      = [1, 1, 1]    # all three servers open
+# EXCEL_COST      = 720.0        # fixed (330) + variable (390)
+# EXCEL_FIXED     = 330.0
+# EXCEL_VARIABLE  = 390.0
+# ───────────────────────────────────────────────────────────────────────
+
+
+def _solve(c_mat, f, cap, d):
+    """
+    Cost-minimising facility location.
+
+    min  sum_j f[j]*y[j]  +  sum_{i,j} c[i][j]*x[i][j]
+    s.t. sum_j x[i][j] = d[i]          (all demand must be met)
+         sum_i x[i][j] <= cap[j]*y[j]  (capacity * open)
+         y[j] in {0,1},  x[i][j] >= 0
+
+    Variables: [ y_0 .. y_{n_f-1} | x_00 x_01 .. x_{n_r-1, n_f-1} ]
+    x[i][j] = units server j serves to node i.
+    """
+    n_r, n_f = len(d), len(f)
+    nv = n_f + n_r * n_f
+
+    obj = np.zeros(nv)
+    obj[:n_f] = np.array(f, dtype=float)
+    for i in range(n_r):
+        for j in range(n_f):
+            obj[n_f + i*n_f + j] = float(c_mat[i][j])
+
+    rows, lo, hi = [], [], []
+
+    # Demand constraints: sum_j x[i][j] = d[i]  (equality)
+    for i in range(n_r):
+        r = np.zeros(nv)
+        r[n_f + i*n_f : n_f + (i+1)*n_f] = 1.0
+        rows.append(r); lo.append(float(d[i])); hi.append(float(d[i]))
+
+    # Capacity constraints: sum_i x[i][j] - cap[j]*y[j] <= 0
+    for j in range(n_f):
+        r = np.zeros(nv); r[j] = -float(cap[j])
+        for i in range(n_r):
+            r[n_f + i*n_f + j] = 1.0
+        rows.append(r); lo.append(-np.inf); hi.append(0.0)
+
+    lb = np.zeros(nv)
+    ub = np.full(nv, np.inf); ub[:n_f] = 1.0
+    integ = np.zeros(nv, dtype=int); integ[:n_f] = 1
+
+    res = milp(obj,
+               constraints=LinearConstraint(np.array(rows), lo, hi),
+               integrality=integ,
+               bounds=Bounds(lb, ub))
+    if res.status != 0:
+        return json.dumps({"error": res.message})
+
+    y = np.round(res.x[:n_f]).astype(int).tolist()
+    x = res.x[n_f:].reshape(n_r, n_f).tolist()
+
+    var_cost   = sum(float(c_mat[i][j]) * x[i][j]
+                     for i in range(n_r) for j in range(n_f))
+    fixed_cost = sum(float(f[j]) * y[j] for j in range(n_f))
+
+    return json.dumps({
+        "y": y, "x": x,
+        "var_cost": var_cost,
+        "fixed_cost": fixed_cost,
+        "total_cost": var_cost + fixed_cost,
+    })
+
+
+def run_from_js(raw):
+    p = json.loads(raw)
+    return _solve(p["c_mat"], p["f"], p["cap"], p["d"])
+`;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// DATA MODEL  (source of truth; DOM is always rebuilt from these)
+// ═══════════════════════════════════════════════════════════════════════
+let reps = [
+  { name: "Server 1", x: 1, y: 4, fixed: 80,  cap: 300 },
+  { name: "Server 2", x: 5, y: 7, fixed: 150, cap: 100 },
+  { name: "Server 3", x: 8, y: 3, fixed: 100, cap: 200 },
+];
+let regions = [
+  { name: "Node A", x: 2, y: 5, demand: 100 },
+  { name: "Node B", x: 6, y: 6, demand: 60  },
+  { name: "Node C", x: 7, y: 2, demand: 240 },
+];
+// costs[i][j] = service cost of server j serving node i
+let costs = [
+  [1.0, 2.0, 3.5],
+  [2.5, 0.5, 2.0],
+  [3.5, 2.0, 0.9],
+];
+let lastSolution = null;
+let pyodide = null;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// PYODIDE BOOT
+// ═══════════════════════════════════════════════════════════════════════
+(async () => {
+  pyodide = await loadPyodide();
+  await pyodide.loadPackage(["numpy", "scipy"]);
+  await pyodide.runPythonAsync(PYTHON);
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  renderAll();
+  drawMap(null);
+})();
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderReps();
+  renderRegions();
+  renderCostMatrix();
+}
+
+function renderReps() {
+  const tbody = document.getElementById("reps-body");
+  tbody.innerHTML = "";
+  reps.forEach((r, j) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="name-in" value="${x(r.name)}"
+          oninput="reps[${j}].name=this.value;renderCostMatrix();drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.x}" step="0.5"
+          oninput="reps[${j}].x=+this.value;drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.y}" step="0.5"
+          oninput="reps[${j}].y=+this.value;drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.fixed}" min="0"
+          oninput="reps[${j}].fixed=+this.value"></td>
+      <td><input type="number" value="${r.cap}"  min="1"
+          oninput="reps[${j}].cap=+this.value"></td>
+      <td class="act"><button class="btn btn-danger btn-xs" onclick="removeRep(${j})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderRegions() {
+  const tbody = document.getElementById("regions-body");
+  tbody.innerHTML = "";
+  regions.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="name-in" value="${x(r.name)}"
+          oninput="regions[${i}].name=this.value;renderCostMatrix();drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.x}" step="0.5"
+          oninput="regions[${i}].x=+this.value;drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.y}" step="0.5"
+          oninput="regions[${i}].y=+this.value;drawMap(lastSolution)"></td>
+      <td><input type="number" value="${r.demand}" min="0"
+          oninput="regions[${i}].demand=+this.value;drawMap(lastSolution)"></td>
+      <td class="act"><button class="btn btn-danger btn-xs" onclick="removeRegion(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCostMatrix() {
+  let html = "<thead><tr><th></th>";
+  reps.forEach(r => { html += `<th>${x(r.name)}</th>`; });
+  html += "</tr></thead><tbody>";
+  regions.forEach((reg, i) => {
+    html += `<tr><td class="lbl">${x(reg.name)}</td>`;
+    reps.forEach((_, j) => {
+      const v = (costs[i] && costs[i][j] != null) ? costs[i][j] : 1.0;
+      html += `<td><input type="number" value="${v}" min="0" step="0.1"
+        oninput="costs[${i}][${j}]=+this.value"></td>`;
+    });
+    html += "</tr>";
+  });
+  html += "</tbody>";
+  document.getElementById("cost-tbl").innerHTML = html;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADD / REMOVE  (keeps costs[][] in sync with reps / regions)
+// ═══════════════════════════════════════════════════════════════════════
+function addRep() {
+  const n = reps.length + 1;
+  reps.push({ name: `Server ${n}`, x: n * 1.5, y: n * 1.5, fixed: 100, cap: 200 });
+  costs.forEach(row => row.push(1.0));   // new column for each existing region
+  lastSolution = null;
+  renderAll(); drawMap(null);
+}
+
+function removeRep(j) {
+  if (reps.length <= 1) return alert("At least one server is required.");
+  reps.splice(j, 1);
+  costs.forEach(row => row.splice(j, 1));
+  lastSolution = null;
+  renderAll(); drawMap(null);
+}
+
+function addRegion() {
+  const n = regions.length + 1;
+  const label = n <= 26 ? String.fromCharCode(64 + n) : String(n);
+  regions.push({ name: `Node ${label}`, x: n * 1.5, y: 1, demand: 100 });
+  costs.push(Array(reps.length).fill(1.0));   // new row for each existing rep
+  lastSolution = null;
+  renderAll(); drawMap(null);
+}
+
+function removeRegion(i) {
+  if (regions.length <= 1) return alert("At least one node is required.");
+  regions.splice(i, 1);
+  costs.splice(i, 1);
+  lastSolution = null;
+  renderAll(); drawMap(null);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// CANVAS MAP
+// ═══════════════════════════════════════════════════════════════════════
+function drawMap(solution) {
+  const canvas = document.getElementById("map");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height, PAD = 44;
+  ctx.clearRect(0, 0, W, H);
+
+  const allX = [...reps.map(r => r.x), ...regions.map(r => r.x)];
+  const allY = [...reps.map(r => r.y), ...regions.map(r => r.y)];
+  let minX = Math.min(...allX), maxX = Math.max(...allX);
+  let minY = Math.min(...allY), maxY = Math.max(...allY);
+  if (maxX === minX) { minX -= 1; maxX += 1; }
+  if (maxY === minY) { minY -= 1; maxY += 1; }
+
+  const px = (cx) => PAD + (cx - minX) / (maxX - minX) * (W - 2 * PAD);
+  const py = (cy) => H - PAD - (cy - minY) / (maxY - minY) * (H - 2 * PAD);
+
+  const maxDemand = Math.max(...regions.map(r => r.demand), 1);
+
+  // Solution flow lines (drawn first, behind markers)
+  if (solution) {
+    const maxFlow = Math.max(...solution.x.flat().filter(v => v > 0.01), 1);
+    regions.forEach((reg, i) => {
+      reps.forEach((rep, j) => {
+        const flow = solution.x[i][j];
+        if (flow < 0.01) return;
+        ctx.beginPath();
+        ctx.moveTo(px(rep.x), py(rep.y));
+        ctx.lineTo(px(reg.x), py(reg.y));
+        ctx.strokeStyle = "rgba(37,99,235,0.30)";
+        ctx.lineWidth = 1.5 + 4 * (flow / maxFlow);
+        ctx.stroke();
+      });
+    });
+  }
+
+  // Demand regions (circles)
+  regions.forEach((reg, i) => {
+    const cx = px(reg.x), cy = py(reg.y);
+    const radius = 9 + 17 * Math.sqrt(reg.demand / maxDemand);
+    const served = solution ? solution.x[i].reduce((s, v) => s + v, 0) : 0;
+    const isServed = served > 0.01;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.fillStyle   = isServed ? "rgba(219,234,254,0.88)" : "rgba(243,244,246,0.88)";
+    ctx.strokeStyle = isServed ? "#2563eb" : "#9ca3af";
+    ctx.lineWidth = 2;
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = "#111827";
+    ctx.font = "bold 10px system-ui";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(reg.name, cx, cy - 2);
+    ctx.font = "9px system-ui"; ctx.fillStyle = "#6b7280";
+    ctx.fillText(`d=${reg.demand}`, cx, cy + 9);
+  });
+
+  // Sales reps (squares)
+  const S = 10;
+  reps.forEach((rep, j) => {
+    const cx = px(rep.x), cy = py(rep.y);
+    const deployed = solution && solution.y[j] === 1;
+    ctx.fillStyle   = deployed ? "#16a34a" : "#9ca3af";
+    ctx.strokeStyle = deployed ? "#15803d" : "#6b7280";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(cx - S, cy - S, 2 * S, 2 * S);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = "#fff"; ctx.font = "bold 9px system-ui";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(j + 1, cx, cy);
+
+    ctx.fillStyle = "#374151"; ctx.font = "9px system-ui";
+    ctx.fillText(rep.name, cx, cy + S + 9);
+  });
+
+  // Legend
+  const lx = 8, ly = 8;
+  ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "9px system-ui";
+
+  ctx.fillStyle = "#16a34a"; ctx.strokeStyle = "#15803d"; ctx.lineWidth = 1;
+  ctx.fillRect(lx, ly, 10, 10); ctx.strokeRect(lx, ly, 10, 10);
+  ctx.fillStyle = "#374151"; ctx.fillText("Server (open)", lx + 14, ly + 5);
+
+  ctx.fillStyle = "#9ca3af"; ctx.strokeStyle = "#6b7280";
+  ctx.fillRect(lx, ly + 14, 10, 10); ctx.strokeRect(lx, ly + 14, 10, 10);
+  ctx.fillStyle = "#374151"; ctx.fillText("Server (closed)", lx + 14, ly + 19);
+
+  ctx.beginPath(); ctx.arc(lx + 5, ly + 32, 5, 0, 2 * Math.PI);
+  ctx.fillStyle = "rgba(219,234,254,0.88)"; ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 1.5;
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#374151"; ctx.font = "9px system-ui";
+  ctx.fillText("Region (served / unserved)", lx + 14, ly + 32);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// SOLVER
+// ═══════════════════════════════════════════════════════════════════════
+async function runSolver() {
+  const btn = document.getElementById("solve-btn");
+  btn.disabled = true; btn.textContent = "Solving…";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("status").style.display = "none";
+
+  const payload = {
+    c_mat: costs.map(row => row.map(v => isNaN(v) ? 0 : v)),
+    f:   reps.map(r => r.fixed || 0),
+    cap: reps.map(r => r.cap   || 1),
+    d:   regions.map(r => r.demand || 0),
+  };
+
+  try {
+    pyodide.globals.set("_payload", JSON.stringify(payload));
+    const raw = await pyodide.runPythonAsync("run_from_js(_payload)");
+    const result = JSON.parse(raw);
+    if (result.error) {
+      showStatus("err", "Solver error: " + result.error);
+    } else {
+      lastSolution = result;
+      drawMap(result);
+      renderResult(result);
+    }
+  } catch (e) {
+    showStatus("err", "Error: " + e.message);
+  }
+
+  btn.disabled = false; btn.textContent = "Solve";
+}
+
+function renderResult(r) {
+  const openNames = reps.filter((_, j) => r.y[j]).map(rep => rep.name);
+  showStatus("ok",
+    `Optimal — open: ${openNames.join(", ")} — total cost: ${r.total_cost.toFixed(2)}`);
+
+  let html = "";
+
+  // Deployment table
+  html += "<h3 style='margin-top:.75rem'>Server decisions</h3>";
+  html += `<table class="rtable"><thead>
+    <tr><th>Server</th><th>Fixed cost</th><th>Capacity</th><th>Decision</th></tr>
+  </thead><tbody>`;
+  reps.forEach((rep, j) => {
+    html += `<tr><td>${x(rep.name)}</td><td>${rep.fixed}</td><td>${rep.cap}</td>
+      <td>${r.y[j] ? "✅ Open" : "❌ Closed"}</td></tr>`;
+  });
+  html += "</tbody></table>";
+
+  // Allocation table
+  html += "<h3 style='margin-top:1rem'>Node allocation</h3>";
+  html += `<table class="rtable"><thead><tr><th></th>`;
+  reps.forEach(rep => { html += `<th>${x(rep.name)}</th>`; });
+  html += "<th>Served</th><th>Demand</th></tr></thead><tbody>";
+  regions.forEach((reg, i) => {
+    const total = r.x[i].reduce((a, b) => a + b, 0);
+    html += `<tr><td>${x(reg.name)}</td>`;
+    r.x[i].forEach(v => { html += `<td>${v > 0.005 ? v.toFixed(1) : "—"}</td>`; });
+    html += `<td>${total.toFixed(1)}</td><td>${reg.demand}</td></tr>`;
+  });
+  html += "</tbody></table>";
+
+  // Cost breakdown
+  html += "<h3 style='margin-top:1rem'>Cost breakdown</h3>";
+  html += `<table class="rtable"><tbody>
+    <tr class="sub"><td>Fixed opening costs</td><td>${r.fixed_cost.toFixed(2)}</td></tr>
+    <tr class="sub"><td>Variable service costs</td><td>${r.var_cost.toFixed(2)}</td></tr>
+    <tr class="total"><td>Total cost</td><td>${r.total_cost.toFixed(2)}</td></tr>
+  </tbody></table>`;
+
+  document.getElementById("results").innerHTML = html;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// XLSX  DOWNLOAD TEMPLATE / UPLOAD
+// ═══════════════════════════════════════════════════════════════════════
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+
+  const srvData = [
+    ["name", "map_x", "map_y", "fixed_cost", "capacity"],
+    ["Server 1", 1, 4, 80, 300],
+    ["Server 2", 5, 7, 150, 100],
+    ["Server 3", 8, 3, 100, 200],
+  ];
+  const demData = [
+    ["name", "map_x", "map_y", "demand"],
+    ["Node A", 2, 5, 100],
+    ["Node B", 6, 6, 60],
+    ["Node C", 7, 2, 240],
+  ];
+  const costData = [
+    ["", "Server 1", "Server 2", "Server 3"],
+    ["Node A", 1.0, 2.5, 3.5],
+    ["Node B", 2.0, 0.5, 2.0],
+    ["Node C", 3.5, 2.0, 0.9],
+  ];
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(srvData),  "servers");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(demData),  "demand_nodes");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(costData), "cost_matrix");
+
+  XLSX.writeFile(wb, "fl-data-template.xlsx");
+}
+
+async function uploadFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    await loadFromXlsx(file);
+  } catch (e) {
+    showStatus("err", "Upload error: " + e.message);
+  }
+  event.target.value = "";
+}
+
+async function loadFromXlsx(file) {
+  const buf = await file.arrayBuffer();
+  const wb  = XLSX.read(buf);
+
+  function sheetToRows(name) {
+    const ws = wb.Sheets[name];
+    if (!ws) throw new Error(`XLSX sheet "${name}" not found. Expected sheets: servers, demand_nodes, cost_matrix.`);
+    return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  }
+
+  const srvRows  = sheetToRows("servers").slice(1);    // skip header row
+  const demRows  = sheetToRows("demand_nodes").slice(1);
+  const costData = sheetToRows("cost_matrix");
+
+  // columns: name, map_x, map_y, fixed_cost, capacity
+  const newReps    = srvRows.filter(r => r[0]).map(r => ({ name: String(r[0]), x: +r[1], y: +r[2], fixed: +r[3], cap: +r[4] }));
+  // columns: name, map_x, map_y, demand
+  const newRegions = demRows.filter(r => r[0]).map(r => ({ name: String(r[0]), x: +r[1], y: +r[2], demand: +r[3] }));
+  // cost_matrix: row 0 = ["", "Server 1", ...], subsequent rows = ["Node A", cost0, cost1, …]
+  const costServerNames = costData[0] ? costData[0].slice(1).map(String) : [];
+  const costRows = costData.slice(1).filter(r => r[0]).map(r => r.map(String));
+
+  applyImport(newReps, newRegions, costServerNames, costRows);
+}
+
+function applyImport(newReps, newRegions, costServerNames, costRows) {
+  if (!newReps.length || !newRegions.length)
+    throw new Error("Missing server or demand-node data. Download the template to check the format.");
+
+  // costs[i][j] = cost of server j serving node i
+  const newCosts = newRegions.map((reg) => {
+    const row = costRows.find(r => r[0] === reg.name);
+    return newReps.map((rep, j) => {
+      if (!row) return 1.0;
+      const colIdx = costServerNames.indexOf(rep.name);
+      return colIdx >= 0 ? (+row[colIdx + 1] || 0) : 1.0;
+    });
+  });
+
+  reps.length    = 0; reps.push(...newReps);
+  regions.length = 0; regions.push(...newRegions);
+  costs.length   = 0; costs.push(...newCosts);
+  lastSolution   = null;
+  renderAll(); drawMap(null);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+function showStatus(cls, msg) {
+  const el = document.getElementById("status");
+  el.className = cls; el.textContent = msg; el.style.display = "block";
+}
+
+// Minimal HTML-escape to prevent XSS when inserting user names into innerHTML
+function x(s) {
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+</script>
+</body>
+</html>
