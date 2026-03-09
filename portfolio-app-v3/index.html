@@ -22,28 +22,60 @@
       font-weight: 700; letter-spacing: .04em; margin-left: .3rem;
     }
 
-    .layout { display: grid; grid-template-columns: 320px 1fr; gap: 2rem; }
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; }
     @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
 
-    /* ── ticker tags ── */
-    .tag-container {
-      display: flex; flex-wrap: wrap; gap: .35rem; padding: .4rem .5rem;
-      border: 1px solid #d1d5db; border-radius: 6px; background: #fff;
-      cursor: text; min-height: 44px; align-items: center;
+    /* ── add-ticker row ── */
+    .add-ticker-row {
+      display: flex; gap: .4rem; align-items: center;
     }
-    .tag-container:focus-within { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
-    .tag {
-      display: inline-flex; align-items: center; gap: .25rem;
-      background: #ede9fe; color: #5b21b6; border-radius: 4px;
-      padding: .18rem .5rem; font-size: .82rem; font-weight: 700;
+    #ticker-input {
+      flex: 1; padding: .35rem .5rem; border: 1px solid #d1d5db;
+      border-radius: 6px; font-size: .88rem; background: #fff;
     }
-    .tag button { background: none; border: none; cursor: pointer; color: #7c3aed; padding: 0; font-size: 1.05rem; line-height: 1; }
-    .tag button:hover { color: #4c1d95; }
-    #ticker-input { border: none; outline: none; font-size: .88rem; min-width: 90px; flex: 1; background: transparent; }
-    .tag-hint { font-size: .76rem; color: #9ca3af; margin-top: .3rem; }
+    #ticker-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
+    #ticker-add-btn {
+      padding: .35rem .75rem; background: #7c3aed; color: #fff;
+      border: none; border-radius: 6px; font-size: .88rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    #ticker-add-btn:hover { background: #6d28d9; }
+    .tag-hint { font-size: .76rem; color: #9ca3af; margin: .3rem 0 0; }
+
+    /* ── portfolio list ── */
+    #portfolio-list { margin: .65rem 0; }
+    .portfolio-row {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .3rem 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .portfolio-row:last-child { border-bottom: none; }
+    .p-ticker {
+      font-weight: 700; font-size: .88rem; color: #5b21b6;
+      min-width: 64px;
+    }
+    .p-price { font-size: .72rem; color: #9ca3af; flex: 1; }
+    .p-shares {
+      width: 88px; padding: .28rem .4rem;
+      border: 1px solid #d1d5db; border-radius: 4px;
+      font-size: .88rem; text-align: right;
+    }
+    .p-shares:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
+    .p-rm {
+      background: none; border: none; cursor: pointer;
+      color: #d1d5db; font-size: 1.15rem; line-height: 1; padding: 0 .1rem;
+    }
+    .p-rm:hover { color: #ef4444; }
+    #portfolio-empty { font-size: .82rem; color: #9ca3af; font-style: italic; padding: .5rem 0; }
+
+    /* ── stale warning ── */
+    #stale-warn {
+      display: none; margin-top: .5rem; padding: .4rem .7rem;
+      background: #fef9c3; border: 1px solid #fde047;
+      border-radius: 5px; font-size: .8rem; color: #713f12;
+    }
 
     /* ── settings ── */
-    .opts { display: flex; flex-direction: column; gap: .65rem; margin-top: .25rem; }
+    .opts { display: flex; flex-direction: column; gap: .65rem; }
     .opts label { font-size: .88rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
     .opts select, .opts input[type=number] {
       padding: .3rem .45rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: .88rem;
@@ -77,6 +109,15 @@
     .ptable td { border: 1px solid #e5e7eb; padding: .3rem .75rem; text-align: right; }
     .ptable td:first-child { text-align: left; font-weight: 600; }
 
+    /* ── portfolio position box ── */
+    #depot-result {
+      display: none; margin-bottom: .75rem; padding: .65rem 1rem;
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px;
+    }
+    #depot-result h2 { margin: 0 0 .35rem; color: #c2410c; font-size: 1rem; }
+    #depot-stat-line { font-size: .9rem; font-weight: 600; color: #c2410c; }
+    #depot-rank { font-size: .82rem; color: #6b7280; margin-top: .25rem; }
+
     /* ── result tables ── */
     .rtable { border-collapse: collapse; font-size: .85rem; width: 100%; margin-top: .5rem; }
     .rtable th { background: #f5f3ff; padding: .4rem .75rem; border: 1px solid #ddd6fe; text-align: right; }
@@ -86,26 +127,6 @@
     .rtable tr.minv td { background: #ecfdf5; }
     .rtable tr.maxs td { background: #eff6ff; }
     .rtable tr.depot-row td { background: #fff7ed; }
-
-    /* ── my portfolio (depot) ── */
-    #depot-section { display: none; margin-top: 1.25rem; }
-    .depot-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: .5rem; margin: .5rem 0 .75rem;
-    }
-    .depot-cell { display: flex; flex-direction: column; gap: .2rem; }
-    .depot-cell label { font-size: .78rem; font-weight: 600; color: #374151; }
-    .depot-cell input {
-      padding: .3rem .45rem; border: 1px solid #d1d5db; border-radius: 4px;
-      font-size: .88rem; text-align: right; width: 100%;
-    }
-    .depot-cell input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
-    #depot-stats {
-      display: none; padding: .55rem .85rem; border-radius: 6px;
-      background: #fff7ed; border: 1px solid #fed7aa; font-size: .875rem;
-    }
-    #depot-stats strong { color: #c2410c; }
-    #depot-rank { font-size: .82rem; color: #6b7280; margin-top: .3rem; }
 
     /* ── save row ── */
     #save-row {
@@ -159,9 +180,8 @@
 
 <h1>Portfolio Efficient Frontier <span class="v-badge">v3</span></h1>
 <p class="subtitle">
-  Live Yahoo Finance prices · CVXPY + Clarabel optimizer · save scenarios as JSON · <strong>see where your portfolio ranks</strong>.<br>
-  <small>HTTP via <a href="https://corsproxy.io" target="_blank">corsproxy.io</a> → Yahoo Finance &nbsp;·&nbsp;
-  Prices adjusted for dividends and splits &nbsp;·&nbsp;
+  Enter your holdings, fetch live Yahoo Finance data, and see where your portfolio sits on the efficient frontier.<br>
+  <small>HTTP via <a href="https://corsproxy.io" target="_blank">corsproxy.io</a> · Prices adjusted for dividends and splits ·
   Non-US tickers need a suffix, e.g. <code>SAP.DE</code>, <code>7203.T</code></small>
 </p>
 
@@ -172,17 +192,25 @@
 
   <!-- ── LEFT ── -->
   <div>
-    <h2>Tickers <small style="font-weight:400;color:#9ca3af">(2 – 10)</small></h2>
-    <div class="tag-container" id="ticker-container"
-         onclick="document.getElementById('ticker-input').focus()">
-      <input id="ticker-input" type="text" placeholder="Type + Enter"
+    <h2>My Portfolio</h2>
+    <p style="font-size:.82rem;color:#6b7280;margin:.1rem 0 .6rem">
+      Add your tickers and share counts. Your holdings are preserved when you re-fetch.
+    </p>
+
+    <div class="add-ticker-row">
+      <input id="ticker-input" type="text" placeholder="e.g. AAPL"
              maxlength="12" autocomplete="off" autocorrect="off"
              autocapitalize="characters" spellcheck="false"
-             onkeydown="handleTickerKey(event)"
              oninput="this.value = this.value.toUpperCase()"
-             onpaste="handlePaste(event)">
+             onkeydown="handleTickerKey(event)">
+      <button id="ticker-add-btn" onclick="addTickerFromInput()">+ Add</button>
     </div>
-    <p class="tag-hint">Enter or comma to add · Backspace removes last · paste comma-separated list</p>
+    <p class="tag-hint">Enter or comma to add · paste a comma-separated list</p>
+
+    <div id="portfolio-list">
+      <div id="portfolio-empty">No tickers yet — add some above.</div>
+    </div>
+    <div id="stale-warn">⚠ Tickers changed — click Fetch & Analyze to update.</div>
 
     <h2>Settings</h2>
     <div class="opts">
@@ -203,13 +231,19 @@
       </label>
     </div>
 
-    <button id="compute" onclick="run()">Fetch Data &amp; Compute</button>
+    <button id="compute" onclick="run()">Fetch Data &amp; Analyze</button>
     <div id="progress"></div>
   </div>
 
   <!-- ── RIGHT ── -->
   <div>
     <div id="status"></div>
+
+    <div id="depot-result">
+      <h2>Your Portfolio</h2>
+      <div id="depot-stat-line"></div>
+      <div id="depot-rank"></div>
+    </div>
 
     <div id="preview">
       <h2>Historical statistics</h2>
@@ -239,20 +273,6 @@
         <thead><tr><th>Ticker</th><th>Ann. Return</th><th>Weight</th><th>Contribution</th></tr></thead>
         <tbody></tbody>
       </table>
-    </div>
-
-    <!-- ── My Portfolio ── -->
-    <div id="depot-section">
-      <h2>My Portfolio</h2>
-      <p style="font-size:.82rem;color:#6b7280;margin:.15rem 0 .6rem">
-        Enter your current allocation to see where it falls on the frontier.
-        Weights are normalised to 100 % automatically.
-      </p>
-      <div class="depot-grid" id="depot-grid"></div>
-      <div id="depot-stats">
-        <strong id="depot-stat-line"></strong>
-        <div id="depot-rank"></div>
-      </div>
     </div>
 
     <!-- ── Save row ── -->
@@ -293,11 +313,11 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.js"></script>
 
 <script>
-// ── Ticker label plugin (registered once, before any Chart is created) ────────
+// ── Ticker label plugin (registered once) ─────────────────────────────────────
 Chart.register({
   id: "tickerLabels",
   afterDatasetsDraw(ch) {
-    const ds = ch.data.datasets[1]; // Assets dataset
+    const ds = ch.data.datasets[1];
     if (!ds || !ds.data.length) return;
     const ctx2 = ch.ctx;
     ctx2.save();
@@ -314,7 +334,7 @@ Chart.register({
   },
 });
 
-// ── Python (optimizer only — no DB code) ─────────────────────────────────────
+// ── Python ────────────────────────────────────────────────────────────────────
 const PYTHON = `
 import json, numpy as np, cvxpy as cp
 from collections import defaultdict
@@ -413,7 +433,10 @@ let frontier      = [];
 let appNames      = [];   // global so tickerLabels plugin can read it
 let annRet        = [];
 let currentResult = null;
-let scenarios     = [];   // JSON-serialisable array — no DB needed
+let currentPrices = {};   // last historical close per ticker
+let depotShares   = {};   // shares keyed by ticker symbol — persists across re-fetches
+let scenarios     = [];
+let resultTickers = [];   // tickers used in the last successful compute
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 (async () => {
@@ -423,7 +446,8 @@ let scenarios     = [];   // JSON-serialisable array — no DB needed
     await pyodide.runPythonAsync(PYTHON);
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display     = "block";
-    renderTags();
+    // Initialise with default tickers
+    ["AAPL", "MSFT", "GOOGL", "AMZN"].forEach(sym => addTicker(sym));
   } catch (e) {
     document.getElementById("loading").textContent =
       "Failed to load: " + e.message + " — try refreshing.";
@@ -431,44 +455,63 @@ let scenarios     = [];   // JSON-serialisable array — no DB needed
   }
 })();
 
-// ── Ticker tag UI ─────────────────────────────────────────────────────────────
-const tickerSet = new Set(["AAPL", "MSFT", "GOOGL", "AMZN"]);
+// ── Portfolio list UI ─────────────────────────────────────────────────────────
+const tickerOrder = [];   // ordered list for display
 
-function renderTags() {
-  const container = document.getElementById("ticker-container");
-  const input     = document.getElementById("ticker-input");
-  container.querySelectorAll(".tag").forEach(t => t.remove());
-  for (const sym of tickerSet) {
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.innerHTML =
-      `${sym} <button type="button" onclick="removeTicker('${sym}')" title="Remove">×</button>`;
-    container.insertBefore(tag, input);
+function addTicker(sym) {
+  sym = sym.trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g, "");
+  if (!sym || tickerOrder.includes(sym)) return;
+  if (!(sym in depotShares)) depotShares[sym] = 0;
+  tickerOrder.push(sym);
+  renderPortfolioList();
+  checkStale();
+}
+
+function removeTicker(sym) {
+  const idx = tickerOrder.indexOf(sym);
+  if (idx !== -1) tickerOrder.splice(idx, 1);
+  // keep depotShares[sym] so re-adding restores the count
+  renderPortfolioList();
+  checkStale();
+}
+
+function renderPortfolioList() {
+  const list = document.getElementById("portfolio-list");
+  if (!tickerOrder.length) {
+    list.innerHTML = `<div id="portfolio-empty">No tickers yet — add some above.</div>`;
+    return;
   }
+  list.innerHTML = tickerOrder.map(sym => {
+    const price = currentPrices[sym] != null
+      ? `<span class="p-price">@ ${currentPrices[sym].toFixed(2)}</span>`
+      : `<span class="p-price"></span>`;
+    const shares = depotShares[sym] ?? 0;
+    return `<div class="portfolio-row">
+      <span class="p-ticker">${sym}</span>
+      ${price}
+      <input class="p-shares" type="number" id="depot-${sym}"
+             value="${shares}" min="0" step="1" placeholder="shares"
+             oninput="onSharesInput('${sym}', this.value)">
+      <button class="p-rm" onclick="removeTicker('${sym}')" title="Remove">×</button>
+    </div>`;
+  }).join("");
 }
 
-function addTicker(raw) {
-  const sym = raw.trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g, "");
-  if (!sym || tickerSet.has(sym)) return;
-  if (tickerSet.size >= 10) { alert("Maximum 10 tickers."); return; }
-  tickerSet.add(sym); renderTags();
+function onSharesInput(sym, val) {
+  depotShares[sym] = parseFloat(val) || 0;
+  updateDepot();
 }
-function removeTicker(sym) { tickerSet.delete(sym); renderTags(); }
+
+function addTickerFromInput() {
+  const input = document.getElementById("ticker-input");
+  if (input.value.trim()) { addTicker(input.value); input.value = ""; }
+}
 
 function handleTickerKey(e) {
-  const input = e.target;
   if (e.key === "Enter" || e.key === ",") {
     e.preventDefault();
-    if (input.value.trim()) { addTicker(input.value); input.value = ""; }
-  } else if (e.key === "Backspace" && !input.value && tickerSet.size > 0) {
-    removeTicker([...tickerSet].at(-1));
+    addTickerFromInput();
   }
-}
-function handlePaste(e) {
-  e.preventDefault();
-  const text = (e.clipboardData || window.clipboardData).getData("text");
-  text.split(/[,\s]+/).filter(Boolean).forEach(addTicker);
-  e.target.value = "";
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -494,6 +537,13 @@ function toast(msg) {
 function pct(v, dec = 2) { return v.toFixed(dec) + "%"; }
 function fmt(v, dec = 4)  { return v.toFixed(dec); }
 
+function checkStale() {
+  if (!resultTickers.length) return;
+  const same = resultTickers.length === tickerOrder.length &&
+               resultTickers.every((t, i) => t === tickerOrder[i]);
+  document.getElementById("stale-warn").style.display = same ? "none" : "block";
+}
+
 // ── Yahoo Finance fetch ───────────────────────────────────────────────────────
 const PROXY = "https://corsproxy.io/?url=";
 const YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/";
@@ -516,10 +566,10 @@ async function fetchTicker(symbol, period) {
   if (!json.chart?.result?.[0])
     throw new Error(`No data for "${symbol}". Non-US exchanges need a suffix (e.g. SAP.DE, 7203.T).`);
 
-  const result   = json.chart.result[0];
-  const ts       = result.timestamp || [];
-  const adj      = result.indicators?.adjclose?.[0]?.adjclose || [];
-  const pairs    = [];
+  const result = json.chart.result[0];
+  const ts     = result.timestamp || [];
+  const adj    = result.indicators?.adjclose?.[0]?.adjclose || [];
+  const pairs  = [];
   for (let i = 0; i < ts.length; i++) {
     const p = adj[i];
     if (p != null && !isNaN(p) && p > 0) pairs.push([ts[i], p]);
@@ -531,8 +581,7 @@ async function fetchTicker(symbol, period) {
 
 // ── Main compute ──────────────────────────────────────────────────────────────
 async function run() {
-  const syms = [...tickerSet];
-  if (syms.length < 2) { showStatus("err", "Add at least 2 tickers."); return; }
+  if (tickerOrder.length < 2) { showStatus("err", "Add at least 2 tickers."); return; }
 
   const btn = document.getElementById("compute");
   btn.disabled = true; btn.textContent = "Working…";
@@ -540,17 +589,26 @@ async function run() {
   document.getElementById("results").style.display  = "none";
   document.getElementById("preview").style.display  = "none";
   document.getElementById("save-row").style.display = "none";
-  document.getElementById("depot-section").style.display = "none";
+  document.getElementById("depot-result").style.display = "none";
+  document.getElementById("stale-warn").style.display   = "none";
 
   const prices = {};
   try {
-    for (let i = 0; i < syms.length; i++) {
-      setProgress(`Fetching ${syms[i]}… (${i + 1} / ${syms.length})`);
-      prices[syms[i]] = await fetchTicker(syms[i], getSel("period"));
+    for (let i = 0; i < tickerOrder.length; i++) {
+      const sym = tickerOrder[i];
+      setProgress(`Fetching ${sym}… (${i + 1} / ${tickerOrder.length})`);
+      prices[sym] = await fetchTicker(sym, getSel("period"));
     }
+    // Store last close prices for depot calculation
+    for (const sym of tickerOrder) {
+      const pairs = prices[sym];
+      currentPrices[sym] = pairs[pairs.length - 1][1];
+    }
+    // Re-render to show prices next to tickers
+    renderPortfolioList();
   } catch (e) {
     showStatus("err", e.message);
-    btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+    btn.disabled = false; btn.textContent = "Fetch Data & Analyze";
     setProgress(""); return;
   }
 
@@ -564,23 +622,30 @@ async function run() {
     res = JSON.parse(raw);
   } catch (e) {
     showStatus("err", "Solver error: " + e.message);
-    btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+    btn.disabled = false; btn.textContent = "Fetch Data & Analyze";
     setProgress(""); return;
   }
 
   setProgress("");
-  btn.disabled = false; btn.textContent = "Fetch Data & Compute";
+  btn.disabled = false; btn.textContent = "Fetch Data & Analyze";
   if (res.error) { showStatus("err", res.error); return; }
   renderAll(res);
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
-function renderAll(res, depotWeights = null) {
+function renderAll(res, savedShares = null) {
   currentResult = res;
   frontier = res.frontier;
   appNames = res.names;
   annRet   = res.ann_ret;
+  resultTickers = [...res.names];
   const { ann_std, i_mv, i_ms, n_obs } = res;
+
+  // Restore shares if loading a scenario
+  if (savedShares) {
+    res.names.forEach((nm, i) => { depotShares[nm] = savedShares[i] ?? 0; });
+    renderPortfolioList();
+  }
 
   showStatus("ok",
     `${n_obs} trading days  ·  ` +
@@ -599,9 +664,9 @@ function renderAll(res, depotWeights = null) {
   renderWeights(frontier[i_ms], `— Max Sharpe (σ=${pct(frontier[i_ms].std)}, r=${pct(frontier[i_ms].r)})`);
   document.getElementById("results").style.display = "block";
 
-  renderDepotGrid(depotWeights);
+  updateDepot();
 
-  document.getElementById("save-name").value = appNames.join("/") + "  " + getSel("period");
+  document.getElementById("save-name").value = appNames.join("/") + " " + getSel("period");
   document.getElementById("save-row").style.display = "flex";
 }
 
@@ -696,66 +761,42 @@ function renderWeights(pt, label) {
     `<td>${fmt(pt.w.reduce((a, b) => a + b, 0), 4)}</td><td>${pct(pt.r)}</td></tr>`;
 }
 
-// ── My Portfolio (depot) ──────────────────────────────────────────────────────
-function renderDepotGrid(initialWeights = null) {
-  const grid = document.getElementById("depot-grid");
-  const eq   = (100 / appNames.length).toFixed(1);
-  grid.innerHTML = appNames.map((nm, i) => {
-    const val = initialWeights ? initialWeights[i].toFixed(1) : eq;
-    return `<div class="depot-cell">
-      <label for="depot-w-${i}">${nm}</label>
-      <input type="number" id="depot-w-${i}" value="${val}" min="0" step="0.5"
-             oninput="updateDepot()">
-    </div>`;
-  }).join("");
-  document.getElementById("depot-section").style.display = "block";
-  updateDepot();
-}
-
-function getDepotWeights() {
-  return appNames.map((_, i) => parseFloat(document.getElementById(`depot-w-${i}`)?.value) || 0);
-}
-
+// ── Depot calculation ─────────────────────────────────────────────────────────
 function updateDepot() {
   if (!currentResult || !chart) return;
-  const weights = getDepotWeights();
-  const total   = weights.reduce((a, b) => a + b, 0);
 
-  // Clear depot dataset if all zeros
+  const shares  = appNames.map(nm => depotShares[nm] ?? 0);
+  const amounts = shares.map((sh, i) => sh * (currentPrices[appNames[i]] || 0));
+  const total   = amounts.reduce((a, b) => a + b, 0);
+
   const depotDs = chart.data.datasets[4];
   if (total < 1e-9) {
     depotDs.data = [];
     chart.update("none");
-    document.getElementById("depot-stats").style.display = "none";
+    document.getElementById("depot-result").style.display = "none";
     return;
   }
 
-  // Normalised weights
-  const w      = weights.map(wi => wi / total);
-  const annCov = currentResult.ann_cov;   // decimal² form
+  const w      = amounts.map(a => a / total);
+  const annCov = currentResult.ann_cov;
   const n      = appNames.length;
 
-  // Portfolio return (annRet is in %)
   const ret = w.reduce((s, wi, i) => s + wi * annRet[i], 0);
-
-  // Portfolio variance  (ann_cov in decimal², result in decimal²)
   let variance = 0;
   for (let i = 0; i < n; i++)
-    for (let j = 0; j < n; j++)
-      variance += w[i] * w[j] * annCov[i][j];
-  const std    = Math.sqrt(Math.max(variance, 0)) * 100;   // convert to %
-  const rf     = getNum("rf");                              // %
+    for (let j = 0; j < n; j++) variance += w[i] * w[j] * annCov[i][j];
+  const std    = Math.sqrt(Math.max(variance, 0)) * 100;
+  const rf     = getNum("rf");
   const sharpe = std > 1e-6 ? (ret - rf) / std : 0;
 
-  // Update chart
   depotDs.data = [{ x: std, y: ret }];
   chart.update("none");
 
-  // Stats line
+  const wPct = w.map(wi => (wi * 100).toFixed(1) + "%").join("  ");
   document.getElementById("depot-stat-line").textContent =
-    `r = ${ret.toFixed(2)}%  ·  σ = ${std.toFixed(2)}%  ·  Sharpe = ${sharpe.toFixed(3)}`;
+    `r = ${ret.toFixed(2)}%  ·  σ = ${std.toFixed(2)}%  ·  Sharpe = ${sharpe.toFixed(3)}` +
+    `  ·  Value ≈ ${total.toLocaleString(undefined, {maximumFractionDigits: 0})}  (${wPct})`;
 
-  // Ranking message: find frontier point with closest return
   const closest = frontier.reduce((best, pt) =>
     Math.abs(pt.r - ret) < Math.abs(best.r - ret) ? pt : best
   );
@@ -767,35 +808,38 @@ function updateDepot() {
   } else if (ret < frontier[0].r) {
     msg = "Your return is below the frontier sweep range — try a longer lookback period.";
   } else {
-    msg = "Your portfolio is close to the efficient frontier.";
+    msg = "Your portfolio is close to the efficient frontier. ✓";
   }
   document.getElementById("depot-rank").textContent = msg;
-  document.getElementById("depot-stats").style.display = "block";
+  document.getElementById("depot-result").style.display = "block";
 }
 
-// ── Scenarios (plain JSON array, no DB) ───────────────────────────────────────
+// ── Scenarios ─────────────────────────────────────────────────────────────────
 function saveScenario() {
   const name = document.getElementById("save-name").value.trim();
   if (!name || !currentResult) { if (!name) alert("Enter a scenario name."); return; }
   const ms = currentResult.frontier[currentResult.i_ms];
+  // Save shares only for tickers in this result
+  const savedShares = currentResult.names.map(nm => depotShares[nm] ?? 0);
   scenarios.push({
-    id:       Date.now(),
+    id:          Date.now(),
     name,
-    saved_at: new Date().toISOString().slice(0, 19),
-    tickers:  currentResult.names,
-    period:   getSel("period"),
-    rf:       getNum("rf") / 100,
-    no_short: getBool("no_short"),
-    ann_ret:  currentResult.ann_ret,
-    ann_std:  currentResult.ann_std,
-    ann_cov:  currentResult.ann_cov,
-    n_obs:    currentResult.n_obs,
-    ms_r:     ms.r,
-    ms_std:   ms.std,
-    frontier: currentResult.frontier,
-    i_mv:     currentResult.i_mv,
-    i_ms:     currentResult.i_ms,
-    depot:    getDepotWeights(),
+    saved_at:    new Date().toISOString().slice(0, 19),
+    tickers:     currentResult.names,
+    period:      getSel("period"),
+    rf:          getNum("rf") / 100,
+    no_short:    getBool("no_short"),
+    ann_ret:     currentResult.ann_ret,
+    ann_std:     currentResult.ann_std,
+    ann_cov:     currentResult.ann_cov,
+    last_prices: Object.fromEntries(currentResult.names.map(nm => [nm, currentPrices[nm] ?? null])),
+    n_obs:       currentResult.n_obs,
+    ms_r:        ms.r,
+    ms_std:      ms.std,
+    frontier:    currentResult.frontier,
+    i_mv:        currentResult.i_mv,
+    i_ms:        currentResult.i_ms,
+    shares:      savedShares,
   });
   refreshScenarios();
   toast("Scenario saved.");
@@ -805,21 +849,26 @@ function loadScenario(id) {
   const s = scenarios.find(sc => sc.id === id);
   if (!s) return;
 
-  tickerSet.clear();
-  s.tickers.forEach(t => tickerSet.add(t));
-  renderTags();
+  // Restore tickers
+  tickerOrder.length = 0;
+  s.tickers.forEach(t => tickerOrder.push(t));
+
+  // Restore settings
   document.getElementById("period").value     = s.period;
   document.getElementById("rf").value         = (s.rf * 100).toFixed(1);
   document.getElementById("no_short").checked = s.no_short;
 
-  const depotWeights = (s.depot && s.depot.length === s.tickers.length) ? s.depot : null;
+  // Restore prices (for value display)
+  if (s.last_prices) Object.assign(currentPrices, s.last_prices);
+
   renderAll({
     frontier: s.frontier, names: s.tickers,
     ann_ret: s.ann_ret, ann_std: s.ann_std, ann_cov: s.ann_cov,
     i_mv: s.i_mv, i_ms: s.i_ms, n_obs: s.n_obs,
-  }, depotWeights);
+  }, s.shares || null);
 
   document.getElementById("save-name").value = s.name;
+  document.getElementById("stale-warn").style.display = "none";
   document.getElementById("status").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -864,8 +913,7 @@ async function uploadScenarios(input) {
   const file = input.files[0];
   if (!file) return;
   try {
-    const text   = await file.text();
-    const loaded = JSON.parse(text);
+    const loaded = JSON.parse(await file.text());
     if (!Array.isArray(loaded)) throw new Error("Expected a JSON array.");
     scenarios = loaded;
     refreshScenarios();
