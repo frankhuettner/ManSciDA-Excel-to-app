@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,32 +7,96 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── theme variables (light) ── */
     :root {
-      --purple: #7c3aed; --purple-light: #ede9fe; --purple-mid: #ddd6fe;
-      --blue:   #2563eb; --blue-light:   #eff6ff;
-      --green:  #059669; --green-light:  #ecfdf5;
-      --amber:  #d97706; --amber-light:  #fffbeb;
-      --gray:   #6b7280; --gray-light:   #f9fafb; --gray-mid: #e5e7eb;
-      --text:   #111827;
-      --radius: 10px;
+      --accent:       #b71c1c;
+      --accent-light: #fce8e8;
+      --accent-mid:   #ffc5c5;
+      --blue:         #2563eb; --blue-light:  #eff6ff;
+      --green:        #059669; --green-light: #ecfdf5;
+      --amber:        #d97706; --amber-light: #fffbeb;
+      --bg:           #fdfdfd;
+      --card-bg:      #fff;
+      --text:         #111827;
+      --gray:         #6b7280;
+      --gray-light:   #f5f5f5;
+      --gray-mid:     #e5e7eb;
+      --divider:      #ffc5c5;
+      --radius:       10px;
+    }
+
+    /* ── theme variables (dark) ── */
+    html[data-theme="dark"] {
+      --accent:       #f35e5e;
+      --accent-light: #3d1a1a;
+      --accent-mid:   #5c2a2a;
+      --bg:           #1c1c1d;
+      --card-bg:      #212529;
+      --text:         #e8e8e8;
+      --gray:         #a0a0a5;
+      --gray-light:   #252528;
+      --gray-mid:     #3a3a3e;
+      --divider:      #a3a3a8;
     }
 
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      color: var(--text); background: #fff; line-height: 1.6;
+      color: var(--text); background: var(--bg); line-height: 1.6;
+      transition: background .2s, color .2s;
     }
-    a { color: var(--purple); }
+    a { color: var(--accent); }
     code {
       font-family: ui-monospace, monospace; font-size: .88em;
       background: var(--gray-mid); padding: .1em .35em; border-radius: 4px;
     }
+    html[data-theme="dark"] code { color: #f87171; }
+
+    /* ── progress bar ── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px; width: 0;
+      background: var(--accent); z-index: 400; transition: width .1s linear;
+      pointer-events: none;
+    }
+
+    /* ── top navbar ── */
+    .topnav {
+      position: sticky; top: 0; z-index: 300;
+      background: var(--bg); border-bottom: 1px solid var(--divider);
+      padding: 0 1.5rem; transition: background .2s, border-color .2s;
+    }
+    .nav-inner {
+      max-width: 800px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 3.5rem;
+    }
+    .nav-brand {
+      font-weight: 700; color: var(--text); text-decoration: none; font-size: .95rem;
+      transition: color .15s;
+    }
+    .nav-brand:hover { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-links a {
+      color: var(--text); text-decoration: none; font-size: .88rem;
+      opacity: .7; transition: opacity .15s, color .15s;
+    }
+    .nav-links a:hover { opacity: 1; color: var(--accent); }
+    .theme-btn {
+      background: none; border: 1px solid var(--gray-mid); border-radius: 6px;
+      cursor: pointer; color: var(--text); font-size: .85rem;
+      padding: .3rem .6rem; opacity: .75; transition: opacity .15s, border-color .15s;
+      line-height: 1;
+    }
+    .theme-btn:hover { opacity: 1; border-color: var(--accent); }
+    @media (max-width: 640px) {
+      .nav-links a:not(:last-child) { display: none; }
+    }
 
     /* ── layout helpers ── */
-    .section        { padding: 5rem 1.5rem; }
-    .section.alt    { background: var(--gray-light); }
-    .section.dark   { background: #1e1b4b; color: #e0e7ff; }
-    .inner          { max-width: 860px; margin: 0 auto; }
-    .inner.wide     { max-width: 1060px; }
+    .section     { padding: 5rem 1.5rem; }
+    .section.alt { background: var(--gray-light); }
+    .section.dark { background: #1a0202; color: #fce8e8; }
+    .inner       { max-width: 800px; margin: 0 auto; }
+    .inner.wide  { max-width: 1000px; }
 
     h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; line-height: 1.15; }
     h2 { font-size: 1.55rem; font-weight: 700; margin-bottom: 1rem; }
@@ -41,7 +105,7 @@
 
     .tag {
       display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .06em;
-      text-transform: uppercase; color: var(--purple); background: var(--purple-light);
+      text-transform: uppercase; color: var(--accent); background: var(--accent-light);
       padding: .2rem .65rem; border-radius: 99px; margin-bottom: 1rem;
     }
 
@@ -55,8 +119,11 @@
       transition: filter .15s;
     }
     .btn:hover { filter: brightness(1.1); }
-    .btn-primary { background: var(--purple); color: #fff; }
-    .btn-outline { background: transparent; border: 2px solid var(--purple-mid); color: var(--purple); margin-left: .75rem; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-outline {
+      background: transparent; border: 2px solid var(--accent-mid);
+      color: var(--accent); margin-left: .75rem;
+    }
 
     /* ── flow diagram ── */
     .flow {
@@ -64,16 +131,16 @@
       flex-wrap: wrap; gap: 0; margin: 3rem 0 1rem;
     }
     .flow-box {
-      background: #fff; border: 2px solid var(--purple-mid);
+      background: var(--card-bg); border: 2px solid var(--accent-mid);
       border-radius: var(--radius); padding: 1.4rem 1.6rem;
       text-align: center; min-width: 160px; flex: 1; max-width: 220px;
-      box-shadow: 0 2px 12px rgba(124,58,237,.08);
+      box-shadow: 0 2px 12px rgba(183,28,28,.08);
     }
     .flow-box .icon { font-size: 2.2rem; margin-bottom: .5rem; }
     .flow-box strong { display: block; font-size: 1rem; margin-bottom: .2rem; }
     .flow-box span   { font-size: .83rem; color: var(--gray); }
     .flow-arrow {
-      font-size: 1.8rem; color: var(--purple-mid); padding: 0 .75rem;
+      font-size: 1.8rem; color: var(--accent-mid); padding: 0 .75rem;
       align-self: center; flex-shrink: 0;
     }
     /* compact variant for the 5-box optional path */
@@ -99,17 +166,17 @@
     }
     #toc .toc-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-      background: var(--purple-mid); transition: transform .2s, background .2s;
+      background: var(--accent-mid); transition: transform .2s, background .2s;
     }
     #toc a.active .toc-dot, #toc a:hover .toc-dot {
-      background: var(--purple); transform: scale(1.5);
+      background: var(--accent); transform: scale(1.5);
     }
     #toc .toc-label {
       font-size: .72rem; font-weight: 600; color: var(--gray);
       white-space: nowrap; transition: color .15s;
     }
-    #toc a:hover .toc-label { color: var(--purple); }
-    #toc a.active .toc-label { color: var(--purple); font-weight: 700; }
+    #toc a:hover .toc-label { color: var(--accent); }
+    #toc a.active .toc-label { color: var(--accent); font-weight: 700; }
     @media (max-width: 1000px) { #toc { display: none; } }
 
     /* ── stack cards ── */
@@ -118,7 +185,7 @@
       gap: 1.25rem; margin-top: 2.5rem;
     }
     .card {
-      background: #fff; border-radius: var(--radius); padding: 1.4rem;
+      background: var(--card-bg); border-radius: var(--radius); padding: 1.4rem;
       border: 1px solid var(--gray-mid);
       box-shadow: 0 1px 6px rgba(0,0,0,.06);
     }
@@ -134,7 +201,7 @@
     .arch {
       margin: 2.5rem auto 0; max-width: 520px;
       border-radius: var(--radius); overflow: hidden;
-      border: 1px solid var(--purple-mid);
+      border: 1px solid var(--accent-mid);
       font-size: .9rem;
     }
     .arch-row {
@@ -154,8 +221,8 @@
     /* ── env table ── */
     .env-table { width: 100%; border-collapse: collapse; margin-top: 2rem; font-size: .9rem; }
     .env-table th {
-      background: var(--purple-light); color: var(--purple); padding: .7rem 1rem;
-      text-align: left; border-bottom: 2px solid var(--purple-mid);
+      background: var(--accent-light); color: var(--accent); padding: .7rem 1rem;
+      text-align: left; border-bottom: 2px solid var(--accent-mid);
     }
     .env-table td { padding: .65rem 1rem; border-bottom: 1px solid var(--gray-mid); vertical-align: top; }
     .env-table tr:last-child td { border-bottom: none; }
@@ -166,38 +233,38 @@
     }
     .pill-green  { background: var(--green-light);  color: var(--green); }
     .pill-blue   { background: var(--blue-light);   color: var(--blue); }
-    .pill-purple { background: var(--purple-light); color: var(--purple); }
+    .pill-accent { background: var(--accent-light); color: var(--accent); }
 
     /* ── prompt tabs ── */
     .prompt-tabs { display: flex; gap: .5rem; margin-top: 2rem; flex-wrap: wrap; }
     .ptab {
       padding: .45rem 1.1rem; border-radius: 6px 6px 0 0;
-      border: 1px solid var(--purple-mid); border-bottom: none;
-      background: var(--purple-light); color: var(--purple);
+      border: 1px solid var(--accent-mid); border-bottom: none;
+      background: var(--accent-light); color: var(--accent);
       font-size: .83rem; font-weight: 600; cursor: pointer;
       transition: background .15s;
     }
-    .ptab.active { background: #1e1b4b; color: #a5b4fc; border-color: #1e1b4b; }
+    .ptab.active { background: #1a0202; color: #ffc5c5; border-color: #1a0202; }
 
     /* ── prompt block ── */
     .prompt-wrap {
       position: relative;
-      background: #1e1b4b; border-radius: 0 var(--radius) var(--radius) var(--radius); overflow: hidden;
+      background: #1a0202; border-radius: 0 var(--radius) var(--radius) var(--radius); overflow: hidden;
     }
     .prompt-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: .75rem 1.25rem; background: rgba(255,255,255,.06);
       border-bottom: 1px solid rgba(255,255,255,.1);
     }
-    .prompt-header span { color: #a5b4fc; font-size: .85rem; font-weight: 600; }
+    .prompt-header span { color: #ffc5c5; font-size: .85rem; font-weight: 600; }
     .copy-btn {
-      padding: .35rem 1rem; border-radius: 6px; border: 1px solid #a5b4fc;
-      background: transparent; color: #a5b4fc; font-size: .83rem;
+      padding: .35rem 1rem; border-radius: 6px; border: 1px solid #ffc5c5;
+      background: transparent; color: #ffc5c5; font-size: .83rem;
       cursor: pointer; font-weight: 600; transition: background .15s, color .15s;
     }
-    .copy-btn:hover, .copy-btn.copied { background: #a5b4fc; color: #1e1b4b; }
+    .copy-btn:hover, .copy-btn.copied { background: #ffc5c5; color: #1a0202; }
     .prompt-text {
-      padding: 1.5rem 1.5rem 2rem; color: #e0e7ff;
+      padding: 1.5rem 1.5rem 2rem; color: #fce8e8;
       font-family: ui-monospace, monospace; font-size: .82rem;
       line-height: 1.7; white-space: pre-wrap; word-break: break-word;
       max-height: 440px; overflow-y: auto;
@@ -216,6 +283,9 @@
     .callout-blue  { background: var(--blue-light);  border-left: 3px solid var(--blue); }
     .callout-amber { background: var(--amber-light); border-left: 3px solid var(--amber); }
     .callout-green { background: var(--green-light); border-left: 3px solid var(--green); }
+    html[data-theme="dark"] .callout-blue  { background: #1a2744; }
+    html[data-theme="dark"] .callout-amber { background: #2a1f08; }
+    html[data-theme="dark"] .callout-green { background: #0d2318; }
 
     /* ── iteration cards ── */
     .iter-grid {
@@ -223,7 +293,7 @@
       gap: 1rem; margin-top: 2rem;
     }
     .iter-card {
-      background: #fff; border-radius: var(--radius);
+      background: var(--card-bg); border-radius: var(--radius);
       border: 1px solid var(--gray-mid); padding: 1.1rem 1.2rem;
       box-shadow: 0 1px 4px rgba(0,0,0,.05);
     }
@@ -236,7 +306,7 @@
     .steps li { display: flex; gap: 1rem; align-items: flex-start; }
     .step-num {
       width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0;
-      background: var(--purple); color: #fff; font-weight: 700; font-size: .9rem;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: .9rem;
       display: flex; align-items: center; justify-content: center; margin-top: .1rem;
     }
     .steps strong { display: block; margin-bottom: .2rem; }
@@ -253,11 +323,36 @@
     /* ── footer ── */
     footer {
       text-align: center; padding: 2.5rem 1rem;
-      font-size: .85rem; color: var(--gray); border-top: 1px solid var(--gray-mid);
+      font-size: .85rem; color: var(--gray);
+      border-top: 1px solid var(--divider);
     }
+    .footer-links {
+      display: flex; justify-content: center; align-items: center;
+      gap: 1rem; margin-top: .6rem;
+    }
+    .footer-links a { color: var(--gray); text-decoration: none; transition: color .15s; }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-links svg { width: 1.1rem; height: 1.1rem; fill: currentColor; vertical-align: middle; }
   </style>
 </head>
 <body>
+
+<!-- ── PROGRESS BAR ── -->
+<div id="progress-bar"></div>
+
+<!-- ── TOP NAVBAR ── -->
+<nav class="topnav">
+  <div class="nav-inner">
+    <a href="https://huettner.io" class="nav-brand">Frank Huettner</a>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#get-started">Get started</a>
+      <a href="#examples">Examples</a>
+      <a href="https://huettner.io">huettner.io</a>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode">☀︎</button>
+  </div>
+</nav>
 
 <!-- ── FLOATING TOC ── -->
 <nav id="toc" aria-label="Page sections">
@@ -292,7 +387,7 @@
     <p>An AI assistant reads your Excel file, extracts the math, and produces a single HTML file you can share with anyone. Optionally add a notebook step to review and fine-tune the solver before publishing.</p>
 
     <!-- Direct path -->
-    <p style="margin-top:2rem;font-weight:600;font-size:.9rem;color:var(--purple)">Direct path</p>
+    <p style="margin-top:2rem;font-weight:600;font-size:.9rem;color:var(--accent)">Direct path</p>
     <div class="flow" style="margin-top:.5rem">
       <div class="flow-box">
         <div class="icon">📊</div>
@@ -300,7 +395,7 @@
         <span>Data, Solver setup, constraints</span>
       </div>
       <div class="flow-arrow">→</div>
-      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+      <div class="flow-box" style="border-color:var(--accent-mid); background:var(--accent-light)">
         <div class="icon">🤖</div>
         <strong>AI assistant</strong>
         <span>Reads model, picks solver, writes code</span>
@@ -326,7 +421,7 @@
         <span>Data, Solver setup, constraints</span>
       </div>
       <div class="flow-arrow">→</div>
-      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+      <div class="flow-box" style="border-color:var(--accent-mid); background:var(--accent-light)">
         <div class="icon">🤖</div>
         <strong>AI assistant</strong>
         <span>Produces a Jupyter notebook</span>
@@ -338,7 +433,7 @@
         <span>Run cells, verify assertions, tweak</span>
       </div>
       <div class="flow-arrow">→</div>
-      <div class="flow-box" style="border-color:#a5b4fc; background:var(--purple-light)">
+      <div class="flow-box" style="border-color:var(--accent-mid); background:var(--accent-light)">
         <div class="icon">🤖</div>
         <strong>AI assistant</strong>
         <span>Converts notebook → HTML app</span>
@@ -374,7 +469,7 @@
     <div class="cards">
       <div class="card">
         <div class="icon">🐍</div>
-        <span class="badge pill-purple">Runtime</span>
+        <span class="badge pill-accent">Runtime</span>
         <h3>Pyodide v0.29.3</h3>
         <p>Python compiled to WebAssembly. Runs inside Chrome, Firefox, Safari — no install, no server.</p>
       </div>
@@ -403,33 +498,33 @@
     <p>The browser downloads a special build of Python compiled to WebAssembly (WASM) — a low-level format every modern browser understands. Your solver code runs inside that Python, in the tab.</p>
 
     <div class="arch" role="img" aria-label="Architecture layers">
-      <div class="arch-row" style="background:#7c3aed">
+      <div class="arch-row" style="background:#b71c1c">
         <div class="arch-label" style="color:#fff">Your solver</div>
-        <div class="arch-desc" style="color:#e0e7ff">
+        <div class="arch-desc" style="color:#fce8e8">
           The same Python code that runs in your notebook — embedded as a string in the HTML file
         </div>
       </div>
-      <div class="arch-row" style="background:#6d28d9">
+      <div class="arch-row" style="background:#9b1818">
         <div class="arch-label" style="color:#fff">numpy · scipy<br>CVXPY · Clarabel</div>
-        <div class="arch-desc" style="color:#ddd6fe">
+        <div class="arch-desc" style="color:#ffc5c5">
           Pre-compiled WASM packages, downloaded from Pyodide's CDN and cached by the browser
         </div>
       </div>
-      <div class="arch-row" style="background:#5b21b6">
+      <div class="arch-row" style="background:#7f1414">
         <div class="arch-label" style="color:#fff">Pyodide v0.29.3</div>
-        <div class="arch-desc" style="color:#c4b5fd">
+        <div class="arch-desc" style="color:#ffaaaa">
           A complete Python 3.12 interpreter compiled to WebAssembly — ~10 MB, downloaded once
         </div>
       </div>
-      <div class="arch-row" style="background:#4c1d95">
-        <div class="arch-label" style="color:#c4b5fd">JavaScript</div>
-        <div class="arch-desc" style="color:#a5b4fc">
+      <div class="arch-row" style="background:#651010">
+        <div class="arch-label" style="color:#ffaaaa">JavaScript</div>
+        <div class="arch-desc" style="color:#f87171">
           Reads form inputs → passes JSON to Python → receives JSON back → updates the page
         </div>
       </div>
-      <div class="arch-row" style="background:#2e1065">
-        <div class="arch-label" style="color:#a5b4fc">Browser</div>
-        <div class="arch-desc" style="color:#818cf8">
+      <div class="arch-row" style="background:#4a0c0c">
+        <div class="arch-label" style="color:#f87171">Browser</div>
+        <div class="arch-desc" style="color:#fb9494">
           Chrome / Firefox / Safari / Edge — no extension or plugin needed
         </div>
       </div>
@@ -479,7 +574,7 @@
           <td>The visitor's browser tab (WebAssembly)</td>
           <td><code>pyodide.loadPackage(["cvxpy-base", "clarabel"])</code> in the HTML file</td>
           <td>Open the URL — nothing to install</td>
-          <td><span class="pill pill-purple">Sharing with non-technical users</span></td>
+          <td><span class="pill pill-accent">Sharing with non-technical users</span></td>
         </tr>
       </tbody>
     </table>
@@ -752,7 +847,7 @@ Must open directly in a browser from disk.</pre>
           <a href="facility-location-app/facility-location-problem.xlsx" download style="font-size:.85rem">Download Excel</a>
         </div>
       </div>
-      <div class="card" style="border-top:3px solid var(--purple)">
+      <div class="card" style="border-top:3px solid var(--accent)">
         <div class="icon">📈</div>
         <h3>Portfolio Frontier</h3>
         <p style="margin:.3rem 0 .75rem">
@@ -817,7 +912,7 @@ print("All assertions passed.")</code></pre>
       </li>
 
       <li>
-        <span class="step-num" style="background:var(--purple)">3</span>
+        <span class="step-num" style="background:var(--accent)">3</span>
         <div style="flex:1">
           <strong>App — end-to-end with Playwright <span style="font-weight:400;font-size:.85rem;color:var(--gray)">(optional, ~20 lines)</span></strong>
           <p>A Playwright test loads <code>index.html</code> in a real browser, fills in the baseline inputs, clicks <em>Solve</em>, and checks that the output matches the notebook reference. It catches issues unique to the browser layer — Pyodide loading, JS wiring, DOM serialization — that the notebook alone cannot see.</p>
@@ -907,7 +1002,7 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
         <h3>E2E test prompt</h3>
         <p>Use an AI coding agent with your <code>index.html</code> and notebook to auto-generate a full Playwright spec — selectors, baseline inputs, and expected values, all inferred from your files.</p>
       </div>
-      <div class="iter-card" style="border:2px dashed #d1d5db;background:transparent">
+      <div class="iter-card" style="border:2px dashed var(--gray-mid);background:transparent">
         <div class="icon">💡</div>
         <h3>Your idea</h3>
         <p>What would make this app genuinely useful for a real decision? Pick one small addition, try it, and see how far you get.</p>
@@ -915,14 +1010,14 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
     </div>
 
     <div style="margin-top:1.75rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-      <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--blue);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
+      <div style="padding:1rem 1.25rem;background:var(--card-bg);border:1px solid var(--gray-mid);border-top:3px solid var(--blue);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
         <span style="font-size:1.6rem;line-height:1">🏭</span>
         <div>
           <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
             <strong>Facility Location</strong>
             <span style="background:#2563eb;color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
           </div>
-          <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">A worked example combining several of the above: dynamic add/remove of servers and demand nodes, a geographic canvas map with flow lines, and XLSX data import/export. The expansion prompt itself was written with AI — describe the features you want and ask an AI assistant to draft the prompt for you.</p>
+          <p style="margin:0 0 .6rem;font-size:.875rem">A worked example combining several of the above: dynamic add/remove of servers and demand nodes, a geographic canvas map with flow lines, and XLSX data import/export. The expansion prompt itself was written with AI — describe the features you want and ask an AI assistant to draft the prompt for you.</p>
           <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
             <a href="facility-location-app-v2/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
             <a href="prompts/expand-facility-location.md" style="font-size:.85rem">Expansion prompt</a>
@@ -930,14 +1025,14 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
         </div>
       </div>
 
-      <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--purple);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
+      <div style="padding:1rem 1.25rem;background:var(--card-bg);border:1px solid var(--gray-mid);border-top:3px solid var(--accent);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
         <span style="font-size:1.6rem;line-height:1">📈</span>
         <div>
           <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
             <strong>Portfolio Frontier</strong>
-            <span style="background:var(--purple);color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
+            <span style="background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v2</span>
           </div>
-          <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">Live Yahoo Finance prices for any tickers you choose — returns and covariance computed from history. A ticker tag UI replaces manual inputs; JavaScript fetches the data so the Python runtime stays as fast as v1.</p>
+          <p style="margin:0 0 .6rem;font-size:.875rem">Live Yahoo Finance prices for any tickers you choose — returns and covariance computed from history. A ticker tag UI replaces manual inputs; JavaScript fetches the data so the Python runtime stays as fast as v1.</p>
           <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
             <a href="portfolio-app-v2/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
             <a href="prompts/expand-portfolio.md" style="font-size:.85rem">Expansion prompt</a>
@@ -945,14 +1040,14 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
         </div>
       </div>
 
-      <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e5e7eb;border-top:3px solid var(--purple);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
+      <div style="padding:1rem 1.25rem;background:var(--card-bg);border:1px solid var(--gray-mid);border-top:3px solid var(--accent);border-radius:8px;display:flex;gap:1rem;align-items:flex-start">
         <span style="font-size:1.6rem;line-height:1">📈</span>
         <div>
           <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
             <strong>Portfolio Frontier</strong>
-            <span style="background:var(--purple);color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v3</span>
+            <span style="background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;padding:.1rem .45rem;border-radius:4px;letter-spacing:.03em">v3</span>
           </div>
-          <p style="margin:0 0 .6rem;font-size:.875rem;color:#374151">Extends v2 with scenario storage and a <em>My Portfolio</em> section. Save named runs as a <code>.json</code> file, reload them instantly (no re-fetch). Enter your actual share holdings to see where your portfolio sits on the efficient frontier.</p>
+          <p style="margin:0 0 .6rem;font-size:.875rem">Extends v2 with scenario storage and a <em>My Portfolio</em> section. Save named runs as a <code>.json</code> file, reload them instantly (no re-fetch). Enter your actual share holdings to see where your portfolio sits on the efficient frontier.</p>
           <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center">
             <a href="portfolio-app-v3/index.html" class="btn btn-outline" style="font-size:.85rem;padding:.4rem 1rem">Open app</a>
             <a href="prompts/expand-portfolio-v3.md" style="font-size:.85rem">Expansion prompt</a>
@@ -982,20 +1077,53 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
 
 <!-- ── FOOTER ── -->
 <footer>
-  <p>Frank Huettner · <a href="https://huettner.io">huettner.io</a> · Guide v0.3</p>
+  <p>© Copyright 2026 Frank Huettner</p>
+  <div class="footer-links">
+    <a href="https://huettner.io" title="huettner.io">huettner.io</a>
+    <a href="https://github.com/frankhuettner/ManSciDA-Excel-to-app" title="GitHub" aria-label="GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <span>Guide v0.3</span>
+  </div>
 </footer>
 
 <script>
+  /* ── dark / light mode ── */
+  const themeBtn = document.querySelector('.theme-btn');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☾' : '☀︎';
+    localStorage.setItem('theme', t);
+  }
+  function toggleTheme() {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  }
+  // restore saved preference or system preference
+  const saved = localStorage.getItem('theme');
+  if (saved) {
+    applyTheme(saved);
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    applyTheme('dark');
+  }
+
+  /* ── scroll progress bar ── */
+  const bar = document.getElementById('progress-bar');
+  window.addEventListener('scroll', () => {
+    const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+    bar.style.width = Math.min(pct, 100) + '%';
+  }, { passive: true });
+
+  /* ── prompt copy ── */
   async function copyPrompt(id) {
     const text = document.getElementById(id).textContent;
     await navigator.clipboard.writeText(text.trim());
-    // find the button in the same panel
     const btn = document.getElementById(id).closest(".prompt-wrap").querySelector(".copy-btn");
     btn.textContent = "Copied!";
     btn.classList.add("copied");
     setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
   }
 
+  /* ── prompt tab switcher ── */
   function switchTab(key) {
     const panels = { html: "panel-html", nb: "panel-nb", nb2html: "panel-nb2html" };
     document.querySelectorAll(".prompt-panel").forEach(p => p.classList.remove("active"));
@@ -1004,7 +1132,7 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
     event.currentTarget.classList.add("active");
   }
 
-  // Smooth scroll for anchor links
+  /* ── smooth scroll for anchor links ── */
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener("click", e => {
       e.preventDefault();
@@ -1013,7 +1141,7 @@ test('baseline facility-location solve', async ({ page }) =&gt; {
     });
   });
 
-  // Floating TOC — highlight active section
+  /* ── floating TOC — highlight active section ── */
   const tocLinks = document.querySelectorAll('#toc a[data-toc]');
   const sections = [...tocLinks].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
   const observer = new IntersectionObserver(entries => {
